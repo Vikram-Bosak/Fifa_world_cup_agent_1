@@ -46,18 +46,21 @@ def edit_long_video_template(input_path: str, logo_path: str, output_path: str):
     return "Long Video Template (News Style)"
 
 def edit_short_video_template(input_path: str, logo_path: str, output_path: str):
-    print("Applying Short Video (Vertical) Template...")
+    print("Applying Short Video (Vertical) Hollywood Style Template...")
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
     
     filter_complex = (
-        # Ensure it's 1080x1920 by scaling and cropping to maintain aspect ratio
-        "[0:v]scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920[fg];"
-        # Small logo
+        # Scale to fit inside the 20px yellow border (1080-40=1040, 1920-40=1880)
+        "[0:v]scale=1040:1880:force_original_aspect_ratio=increase,crop=1040:1880[scaled];"
+        # Pad with yellow border to make it 1080x1920
+        "[scaled]pad=1080:1920:20:20:yellow[padded];"
+        # Small logo at top right
         "[1:v]scale=120:-1[logo];"
-        # Overlay logo
-        "[fg][logo]overlay=W-w-30:30[with_logo];"
-        # Catchy Headline in center-top
-        "[with_logo]drawtext=text='🔥 MESSI MAGIC':fontcolor=white:fontsize=90:x=(w-text_w)/2:y=300:bordercolor=black:borderw=6:shadowcolor=black:shadowx=5:shadowy=5[outv]"
+        "[padded][logo]overlay=W-w-30:30[with_logo];"
+        # Catchy Headline (Top) - Yellow text on Black box
+        "[with_logo]drawtext=text='EPIC FIFA MOMENT':fontcolor=yellow:fontfile='/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf':fontsize=65:x=(w-text_w)/2:y=120:box=1:boxcolor=black:boxborderw=15[with_hook];"
+        # Bottom Text (NEWS) - Yellow text on Black box
+        "[with_hook]drawtext=text='NEWS':fontcolor=yellow:fontfile='/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf':fontsize=80:x=(w-text_w)/2:y=h-160:box=1:boxcolor=black:boxborderw=20[outv]"
     )
     
     cmd = [
@@ -69,7 +72,7 @@ def edit_short_video_template(input_path: str, logo_path: str, output_path: str)
         output_path
     ]
     subprocess.run(cmd, check=True)
-    return "Short Video Template (Viral Reel)"
+    return "Short Video Template (Hollywood Reels Style)"
 
 def process_video_dynamically(input_path: str, logo_path: str, output_path: str):
     print(f"Analyzing {input_path}...")
