@@ -119,9 +119,20 @@ def run_upload_pipeline(video_path: str):
         
     print(f"Starting Upload Process for {video_path}")
     
-    # Generate Metadata via AI LLM
-    from common.seo_generator import generate_seo_metadata
-    seo_data = generate_seo_metadata()
+    # Load Hook Line from state file if available
+    hook_line = None
+    state_file = "temp/state_upload.json"
+    if os.path.exists(state_file):
+        try:
+            with open(state_file, "r") as f:
+                state_data = json.load(f)
+                hook_line = state_data.get("hook_line")
+        except:
+            pass
+            
+    # Generate Metadata via AI LLM Stage 2
+    from common.seo_generator import generate_upload_metadata
+    seo_data = generate_upload_metadata(hook_line)
     title = seo_data["title"]
     base_description = seo_data["description"]
     facebook_caption = seo_data.get("facebook_caption", base_description)
