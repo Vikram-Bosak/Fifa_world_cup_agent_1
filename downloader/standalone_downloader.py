@@ -11,6 +11,7 @@ from dotenv import load_dotenv
 # Ensure we can import from the common module
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from common.telegram import send_video
+from common.limits import can_download, increment_download
 
 load_dotenv()
 
@@ -34,6 +35,11 @@ def append_to_archive(video_id):
 
 def run_downloader():
     print("Starting standalone downloader with Priority-Based Profile Scanning...")
+    
+    if not can_download():
+        print("Daily Download Limit Reached (10/10). Exiting downloader.")
+        return
+        
     os.makedirs(TEMP_DIR, exist_ok=True)
     
     # Clear temp dir before starting
@@ -222,6 +228,7 @@ def run_downloader():
             break # Stop processing other tweets for this profile since we only want 1 video
 
         if video_downloaded:
+            increment_download()
             print("Successfully downloaded a video. Stopping the scanning process to respect priority order.")
             return # Stop scanning any other profiles entirely
             
