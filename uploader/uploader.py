@@ -70,6 +70,13 @@ def upload_to_youtube(video_path, title, description):
         raise Exception("Google API client not installed")
         
     token_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'token.json')
+    
+    # If running in GitHub Actions, create token.json from env var
+    youtube_token_env = os.getenv("YOUTUBE_TOKEN_JSON")
+    if youtube_token_env:
+        with open(token_path, "w") as f:
+            f.write(youtube_token_env)
+            
     if not os.path.exists(token_path):
         raise Exception("YouTube token.json not found")
         
@@ -121,12 +128,14 @@ def run_upload_pipeline(video_path: str):
     
     # Load Hook Line from state file if available
     hook_line = None
+    original_file = video_path
     state_file = "temp/state_upload.json"
     if os.path.exists(state_file):
         try:
             with open(state_file, "r") as f:
                 state_data = json.load(f)
                 hook_line = state_data.get("hook_line")
+                original_file = state_data.get("original_file", video_path)
         except:
             pass
             
@@ -173,7 +182,7 @@ def run_upload_pipeline(video_path: str):
         'description': yt_desc,
         'fb_url': fb_url if fb_url != 'Failed' else 'N/A',
         'yt_url': yt_url if yt_url != 'Failed' else 'N/A',
-        'original_file': video_path,
+        'original_file': original_file,
         'job_status': 'Success' if fb_url != 'Failed' or yt_url != 'Failed' else 'Failed'
     }
     report_final_summary(summary_data)
