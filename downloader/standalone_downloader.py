@@ -16,9 +16,7 @@ load_dotenv()
 
 TARGET_PROFILES = [
     {"name": "FIFA World Cup", "username": "FIFAWorldCup"},
-    {"name": "Top Player 1 (Cristiano)", "username": "Cristiano"},
-    {"name": "Top Player 2 (Messi)", "username": "TeamMessi"},
-    {"name": "Top Player 3 (Mbappe)", "username": "KMbappe"}
+    {"name": "Cristiano Ronaldo", "username": "Cristiano"}
 ]
 
 ARCHIVE_FILE = os.path.join(os.path.dirname(__file__), "download_archive.txt")
