@@ -8,7 +8,12 @@ on:
         required: false
         default: 'RANDOM_YOUTUBE_SEARCH'
   schedule:
-    - cron: '0 0 * * *' # Run daily at midnight (adjust as needed)
+    # Schedule configured for 5 times a day (US EST / EDT) targeting US audience peaks
+    - cron: '0 14 * * *' # 9:00 AM EST (14:00 UTC)
+    - cron: '0 18 * * *' # 1:00 PM EST (18:00 UTC)
+    - cron: '0 22 * * *' # 5:00 PM EST (22:00 UTC)
+    - cron: '0 1 * * *'  # 8:00 PM EST (01:00 UTC)
+    - cron: '0 4 * * *'  # 11:00 PM EST (04:00 UTC)
 
 jobs:
   process_video:

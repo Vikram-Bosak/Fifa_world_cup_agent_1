@@ -17,8 +17,11 @@ def upload_video(input_path: str):
         
     print(f"Uploading video {input_path}...")
     
-    title = "Shocking FIFA World Cup Moment 😱⚽"
-    description = "You won't believe what happened in this match! #FIFA #WorldCup #Football"
+    from common.seo_generator import generate_seo_metadata
+    seo_data = generate_seo_metadata()
+    title = seo_data["title"]
+    description = seo_data["description"]
+    tags = seo_data["tags"]
     
     # Facebook Upload using Graph API
     print("Uploading to Facebook Reels...")
@@ -112,7 +115,7 @@ def upload_video(input_path: str):
             'snippet': {
                 'title': title,
                 'description': description,
-                'tags': ['Shorts', 'FIFA', 'WorldCup', 'Football'],
+                'tags': tags,
                 'categoryId': '17' # Sports
             },
             'status': {
