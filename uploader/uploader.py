@@ -150,21 +150,17 @@ def run_upload_pipeline(video_path: str):
     if fb_url != "Failed" or yt_url != "Failed":
         increment_upload()
         
-    # Send Telegram Report
-    report = (
-        f"🚀 <b>Final Upload Report</b>\n\n"
-        f"<b>Title:</b> {title}\n"
-        f"<b>Time:</b> {datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')} UTC\n\n"
-        f"🔵 <b>Facebook Status:</b> {'✅ Success' if fb_url != 'Failed' else '❌ Failed'}\n"
-        f"🔗 URL: {fb_url}\n"
-        f"⚠️ Error: {fb_err if fb_url == 'Failed' else 'None'}\n\n"
-        f"🔴 <b>YouTube Status:</b> {'✅ Success' if yt_url != 'Failed' else '❌ Failed'}\n"
-        f"🔗 URL: {yt_url}\n"
-        f"⚠️ Error: {yt_err if yt_url == 'Failed' else 'None'}\n"
-    )
-    
-    from common.telegram import TELEGRAM_REPORT_CHAT_ID
-    send_message(report, TELEGRAM_REPORT_CHAT_ID)
+    # Send Final Telegram Report
+    from common.telegram import report_final_summary
+    summary_data = {
+        'title': title,
+        'description': description,
+        'fb_url': fb_url if fb_url != 'Failed' else 'N/A',
+        'yt_url': yt_url if yt_url != 'Failed' else 'N/A',
+        'original_file': video_path,
+        'job_status': 'Success' if fb_url != 'Failed' or yt_url != 'Failed' else 'Failed'
+    }
+    report_final_summary(summary_data)
     print("Upload reporting finished!")
 
 if __name__ == "__main__":
