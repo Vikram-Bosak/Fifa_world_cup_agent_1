@@ -114,7 +114,7 @@ def edit_video(input_path: str, output_path: str):
         # Lower original stadium/action audio so it doesn't overpower the beat
         final_video = final_video.volumex(0.3)
         
-        bgm_path = "assets/bgm.ogg"
+        bgm_path = "assets/bgm.wav"
         if os.path.exists(bgm_path):
             bgm = AudioFileClip(bgm_path).volumex(0.9)
             # Loop the high-energy beat to fit the video duration
