@@ -1,54 +1,78 @@
-import random
+import os
+import json
+from openai import OpenAI
+from dotenv import load_dotenv
+
+load_dotenv()
 
 def generate_seo_metadata() -> dict:
     """
-    Generates dynamic, highly optimized American English SEO metadata.
-    Focuses on the US audience using terminology like 'Soccer' and 'USMNT'.
+    Calls NVIDIA's LLM API (nemotron-3-ultra-550b-a55b) to generate viral SEO metadata.
+    Returns a dictionary with title, description, facebook_caption, hashtags, and tags.
     """
-    # Hooks that appeal to an American audience
-    hooks = [
-        "Craziest Soccer Moments in World Cup History! 🤯🇺🇸",
-        "Top 10 Insane Soccer Goals You Won't Believe! 🎯",
-        "0 IQ Soccer Moments Caught On Camera 😂💀",
-        "The Greatest Soccer Highlights Ever Recorded 🏆",
-        "Unbelievable World Cup Soccer Skills! 🔥",
-        "Is This The Best Soccer Goal Ever? 😱",
-        "Soccer Players Losing Their Minds! 😤",
-        "Absolute Magic On The Soccer Pitch! ✨",
-        "When Soccer Becomes Art 🎨⚽",
-        "Most Savage Moments in World Cup Soccer 🥶"
-    ]
+    api_key = os.getenv("NVIDIA_API_KEY")
+    if not api_key:
+        print("Warning: NVIDIA_API_KEY not found. Using fallback SEO data.")
+        return get_fallback_metadata()
+        
+    client = OpenAI(
+        base_url="https://integrate.api.nvidia.com/v1",
+        api_key=api_key
+    )
     
-    # American English specific descriptions
-    descriptions = [
-        "Check out this absolutely insane World Cup soccer highlight! If you love the USMNT and international soccer, you gotta see this. Don't forget to smash that like button and subscribe for daily viral sports content! 🇺🇸⚽🔥",
-        "This is what peak soccer looks like! From crazy bicycle kicks to legendary goalkeeper saves, the World Cup never disappoints. Hit subscribe for more amazing soccer highlights and let us know your favorite team down in the comments! 👇",
-        "You've never seen soccer skills like this before! We're breaking down the craziest, funniest, and most unbelievable moments from the world's biggest tournament. Follow us for your daily dose of viral sports action! 🏆⚡",
-        "0 IQ plays or absolute genius? You decide! Watch this legendary soccer moment and tell us if you could have made that shot. Make sure to follow the channel for the best US soccer and international highlights! 🎯🇺🇸",
-        "When the pressure is on, legends are born! Take a look at this jaw-dropping soccer highlight from the World Cup. Whether you're rooting for Team USA or just love the game, this clip is wild! Subscribe for more! 🔥"
-    ]
+    prompt = """
+    You are an expert sports social media manager. I need viral content for a thrilling FIFA World Cup highlight reel.
+    Please generate the following details and return ONLY a valid JSON object without any markdown wrapping or extra text.
+    The JSON must contain these exact keys:
+    - "title": A catchy, viral, 2-5 word title (e.g., "🔥 MESSI MAGIC", "CRAZIEST FIFA MOMENT! 😱").
+    - "description": An engaging, SEO-optimized YouTube Shorts description (3-4 sentences) targeting US audience.
+    - "facebook_caption": A short, punchy caption for Facebook Reels with a call to action.
+    - "hashtags": A string of 5-7 viral hashtags (e.g., "#FIFA #Soccer #Viral").
+    - "tags": A list of 5-8 SEO tags (strings) for YouTube.
+    """
     
-    # US-centric Tags
-    tags_pool = [
-        "Soccer", "USMNT", "World Cup", "Viral Sports", "Soccer Highlights", 
-        "Football", "Funny Soccer", "Crazy Goals", "Team USA", "MLS", 
-        "Sports Edits", "Soccer Skills", "Goal", "Fifa World Cup"
-    ]
-    
-    # Select random items
-    title = random.choice(hooks)
-    description = random.choice(descriptions)
-    
-    # Pick 5-8 random tags
-    num_tags = random.randint(5, 8)
-    selected_tags = random.sample(tags_pool, num_tags)
-    
-    # Append hashtags to description for Facebook/YouTube
-    hashtags = " ".join([f"#{t.replace(' ', '')}" for t in selected_tags])
-    full_description = f"{description}\n\n{hashtags}"
-    
+    try:
+        completion = client.chat.completions.create(
+            model="nvidia/nemotron-3-ultra-550b-a55b",
+            messages=[{"role": "user", "content": prompt}],
+            temperature=0.7,
+            top_p=0.95,
+            max_tokens=1024,
+        )
+        
+        # The API returns the content in the choices
+        content = completion.choices[0].message.content
+        
+        # Clean up in case the LLM returned markdown code blocks
+        if content.startswith("```json"):
+            content = content[7:]
+        if content.startswith("```"):
+            content = content[3:]
+        if content.endswith("```"):
+            content = content[:-3]
+            
+        data = json.loads(content.strip())
+        
+        # Ensure all keys are present
+        required_keys = ["title", "description", "facebook_caption", "hashtags", "tags"]
+        for key in required_keys:
+            if key not in data:
+                data[key] = get_fallback_metadata()[key]
+                
+        return data
+
+    except Exception as e:
+        print(f"Error calling NVIDIA LLM API: {e}")
+        return get_fallback_metadata()
+
+def get_fallback_metadata():
     return {
-        "title": title,
-        "description": full_description,
-        "tags": selected_tags
+        "title": "CRAZIEST FIFA MOMENT! 😱",
+        "description": "Check out this absolutely insane World Cup soccer highlight! If you love international soccer, you gotta see this. Don't forget to smash that like button and subscribe for daily viral sports content! 🇺🇸⚽🔥",
+        "facebook_caption": "Wait for the end... you won't believe this World Cup moment! 🤯⚽ Comment your favorite team below! 👇",
+        "hashtags": "#FIFA #WorldCup #Soccer #ViralSports #Highlights",
+        "tags": ["Soccer", "World Cup", "Viral Sports", "Soccer Highlights", "Crazy Goals"]
     }
+
+if __name__ == "__main__":
+    print(json.dumps(generate_seo_metadata(), indent=4))

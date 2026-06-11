@@ -119,11 +119,16 @@ def run_upload_pipeline(video_path: str):
         
     print(f"Starting Upload Process for {video_path}")
     
-    # Generate Metadata
+    # Generate Metadata via AI LLM
     from common.seo_generator import generate_seo_metadata
     seo_data = generate_seo_metadata()
     title = seo_data["title"]
-    description = seo_data["description"]
+    base_description = seo_data["description"]
+    facebook_caption = seo_data.get("facebook_caption", base_description)
+    hashtags = seo_data.get("hashtags", "")
+    
+    fb_desc = f"{facebook_caption}\n\n{hashtags}"
+    yt_desc = f"{base_description}\n\n{hashtags}"
     
     fb_url = "Failed"
     fb_err = "None"
@@ -132,7 +137,7 @@ def run_upload_pipeline(video_path: str):
     
     # 1. Facebook Upload
     try:
-        fb_url = upload_to_facebook(video_path, description)
+        fb_url = upload_to_facebook(video_path, fb_desc)
         print(f"Facebook upload successful: {fb_url}")
     except Exception as e:
         fb_err = str(e)
@@ -140,7 +145,7 @@ def run_upload_pipeline(video_path: str):
         
     # 2. YouTube Upload
     try:
-        yt_url = upload_to_youtube(video_path, title, description)
+        yt_url = upload_to_youtube(video_path, title, yt_desc)
         print(f"YouTube upload successful: {yt_url}")
     except Exception as e:
         yt_err = str(e)
@@ -154,7 +159,7 @@ def run_upload_pipeline(video_path: str):
     from common.telegram import report_final_summary
     summary_data = {
         'title': title,
-        'description': description,
+        'description': yt_desc,
         'fb_url': fb_url if fb_url != 'Failed' else 'N/A',
         'yt_url': yt_url if yt_url != 'Failed' else 'N/A',
         'original_file': video_path,
