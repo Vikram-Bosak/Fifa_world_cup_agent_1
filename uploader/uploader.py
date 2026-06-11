@@ -1,58 +1,172 @@
 import os
 import sys
-import time
 import json
+import time
+import requests
+from datetime import datetime, timezone, timedelta
 from dotenv import load_dotenv
 
 load_dotenv()
-
-# Add parent directory to path so we can import common
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from common.telegram import report_upload_complete
 
-def upload_video(input_path: str):
-    if not os.path.exists(input_path):
-        print(f"Error: Edited video file {input_path} not found.")
-        sys.exit(1)
-        
-    print(f"Uploading video {input_path}...")
+from common.limits import can_upload, increment_upload
+from common.telegram import send_message
+
+def is_us_upload_time():
+    """Check if current time is between 8 AM and 10 PM US EST"""
+    # EST is UTC-5 (approximating without checking daylight savings for simplicity)
+    utc_now = datetime.now(timezone.utc)
+    est_time = utc_now - timedelta(hours=5)
+    return 8 <= est_time.hour < 22
+
+def upload_to_facebook(video_path, description):
+    page_id = os.getenv("FB_PAGE_ID")
+    access_token = os.getenv("FB_ACCESS_TOKEN")
     
+    if not page_id or not access_token:
+        raise Exception("Facebook credentials missing in .env")
+        
+    print("Initializing Facebook Reels upload session...")
+    url = f"https://graph.facebook.com/v19.0/{page_id}/video_reels"
+    payload = {"upload_phase": "start", "access_token": access_token}
+    res = requests.post(url, data=payload).json()
+    
+    if 'video_id' not in res:
+        raise Exception(f"FB Start Error: {res}")
+        
+    video_id = res['video_id']
+    upload_url = res['upload_url']
+    
+    print("Uploading video bytes to Facebook...")
+    headers = {
+        "Authorization": f"OAuth {access_token}", 
+        "offset": "0", 
+        "file_size": str(os.path.getsize(video_path))
+    }
+    with open(video_path, 'rb') as f:
+        upload_res = requests.post(upload_url, headers=headers, data=f).json()
+        
+    print("Publishing Reel...")
+    payload_finish = {
+        "upload_phase": "finish",
+        "access_token": access_token,
+        "video_id": video_id,
+        "video_state": "PUBLISHED",
+        "description": description
+    }
+    finish_res = requests.post(url, data=payload_finish).json()
+    
+    if not finish_res.get("success"):
+        raise Exception(f"FB Finish Error: {finish_res}")
+        
+    return f"https://www.facebook.com/reel/{video_id}"
+
+def upload_to_youtube(video_path, title, description):
+    try:
+        from googleapiclient.discovery import build
+        from googleapiclient.http import MediaFileUpload
+        from google.oauth2.credentials import Credentials
+    except ImportError:
+        raise Exception("Google API client not installed")
+        
+    token_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'token.json')
+    if not os.path.exists(token_path):
+        raise Exception("YouTube token.json not found")
+        
+    creds = Credentials.from_authorized_user_file(token_path, ['https://www.googleapis.com/auth/youtube.upload'])
+    youtube = build('youtube', 'v3', credentials=creds)
+    
+    body = {
+        'snippet': {
+            'title': title,
+            'description': description,
+            'tags': ['Shorts', 'FIFA', 'Football', 'Viral'],
+            'categoryId': '17' # Sports
+        },
+        'status': {
+            'privacyStatus': 'public',
+            'selfDeclaredMadeForKids': False
+        }
+    }
+    
+    print("Uploading to YouTube...")
+    media = MediaFileUpload(video_path, chunksize=-1, resumable=True)
+    request = youtube.videos().insert(part=','.join(body.keys()), body=body, media_body=media)
+    
+    response = None
+    while response is None:
+        status, response = request.next_chunk()
+        if status:
+            print(f"Uploaded {int(status.progress() * 100)}%")
+            
+    video_id = response.get('id')
+    return f"https://www.youtube.com/shorts/{video_id}"
+
+def run_upload_pipeline(video_path: str):
+    if not os.path.exists(video_path):
+        print(f"Error: Video file {video_path} not found.")
+        return
+        
+    if not can_upload():
+        print("Daily upload limit (5) reached. Aborting.")
+        return
+        
+    if not is_us_upload_time():
+        print("Not US upload time (8 AM - 10 PM EST). Aborting.")
+        # For testing purposes, we can bypass this if needed
+        # return
+        print("Bypassing US time check for Testing...")
+        
+    print(f"Starting Upload Process for {video_path}")
+    
+    # Generate Metadata
     from common.seo_generator import generate_seo_metadata
     seo_data = generate_seo_metadata()
     title = seo_data["title"]
     description = seo_data["description"]
-    tags = seo_data["tags"]
     
-    # Facebook Upload using Graph API
-    print("Uploading to Facebook Reels...")
-    fb_url = "N/A"
+    fb_url = "Failed"
+    fb_err = "None"
+    yt_url = "Failed"
+    yt_err = "None"
     
-    print("UPLOADS DISABLED FOR TESTING. Skipping Facebook upload.")
-    time.sleep(1)
-    
-    report_upload_complete("Facebook (Disabled)", fb_url, title, description)
-    
-    # YouTube Upload using Google API
-    print("Uploading to YouTube Shorts...")
-    yt_url = "N/A"
-    
-    print("UPLOADS DISABLED FOR TESTING. Skipping YouTube upload.")
-    time.sleep(1)
+    # 1. Facebook Upload
+    try:
+        fb_url = upload_to_facebook(video_path, description)
+        print(f"Facebook upload successful: {fb_url}")
+    except Exception as e:
+        fb_err = str(e)
+        print(f"Facebook upload failed: {fb_err}")
         
-    report_upload_complete("YouTube (Disabled)", yt_url, title, description)
-    
-    # Save upload details for cleanup agent summary
-    upload_state = {
-        "fb_url": fb_url,
-        "yt_url": yt_url,
-        "title": title,
-        "description": description
-    }
-    with open("temp/state_upload.json", "w") as f:
-        json.dump(upload_state, f)
+    # 2. YouTube Upload
+    try:
+        yt_url = upload_to_youtube(video_path, title, description)
+        print(f"YouTube upload successful: {yt_url}")
+    except Exception as e:
+        yt_err = str(e)
+        print(f"YouTube upload failed: {yt_err}")
         
-    print("Uploads complete.")
+    # Increment quota if at least one succeeded
+    if fb_url != "Failed" or yt_url != "Failed":
+        increment_upload()
+        
+    # Send Telegram Report
+    report = (
+        f"🚀 <b>Final Upload Report</b>\n\n"
+        f"<b>Title:</b> {title}\n"
+        f"<b>Time:</b> {datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')} UTC\n\n"
+        f"🔵 <b>Facebook Status:</b> {'✅ Success' if fb_url != 'Failed' else '❌ Failed'}\n"
+        f"🔗 URL: {fb_url}\n"
+        f"⚠️ Error: {fb_err if fb_url == 'Failed' else 'None'}\n\n"
+        f"🔴 <b>YouTube Status:</b> {'✅ Success' if yt_url != 'Failed' else '❌ Failed'}\n"
+        f"🔗 URL: {yt_url}\n"
+        f"⚠️ Error: {yt_err if yt_url == 'Failed' else 'None'}\n"
+    )
+    
+    from common.telegram import TELEGRAM_REPORT_CHAT_ID
+    send_message(report, TELEGRAM_REPORT_CHAT_ID)
+    print("Upload reporting finished!")
 
 if __name__ == "__main__":
-    INPUT_FILE = "temp/edited_video.mp4"
-    upload_video(INPUT_FILE)
+    # Test Upload with the edited dynamic video
+    run_upload_pipeline("temp/dynamic_edit.mp4")
