@@ -45,6 +45,12 @@ def run_downloader():
 
     archive = load_archive()
     today_utc = datetime.utcnow().date()
+    
+    HEADERS = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36",
+        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
+        "Accept-Language": "en-US,en;q=0.5",
+    }
 
     for profile in TARGET_PROFILES:
         profile_name = profile["name"]
@@ -54,7 +60,7 @@ def run_downloader():
         syndication_url = f"https://syndication.twitter.com/srv/timeline-profile/screen-name/{username}"
         
         try:
-            response = requests.get(syndication_url, timeout=15)
+            response = requests.get(syndication_url, headers=HEADERS, timeout=15)
             response.raise_for_status()
         except Exception as e:
             print(f"Failed to fetch syndication timeline for {username}: {e}")
