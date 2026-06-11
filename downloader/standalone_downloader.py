@@ -180,8 +180,30 @@ def run_downloader():
             )
             
             print(f"Sending RAW video to Channel 1 (Queue)...")
-            send_video(output_path, caption=f"RAW_VIDEO_ID: {tweet_id}")
+            raw_caption = f"STATUS: 🔴 DOWNLOADED | ID: {tweet_id}"
+            message_id = send_video(output_path, caption=raw_caption)
             
+            if message_id:
+                # Save task for Editor agent
+                pending_file = os.path.join(TEMP_DIR, "pending_tasks.json")
+                tasks = []
+                if os.path.exists(pending_file):
+                    try:
+                        with open(pending_file, "r") as f:
+                            tasks = json.load(f)
+                    except:
+                        pass
+                
+                tasks.append({
+                    "id": tweet_id,
+                    "message_id": message_id,
+                    "status": "DOWNLOADED",
+                    "timestamp": datetime.utcnow().isoformat()
+                })
+                
+                with open(pending_file, "w") as f:
+                    json.dump(tasks, f, indent=4)
+                    
             from common.telegram import TELEGRAM_REPORT_CHAT_ID
             print(f"Sending Detailed Report to Channel 2 (Reports)...")
             send_video(output_path, caption=caption, chat_id=TELEGRAM_REPORT_CHAT_ID)

@@ -28,15 +28,15 @@ def send_message(message: str, chat_id: str = None) -> None:
     except Exception as e:
         print(f"Failed to send Telegram message: {e}")
 
-def send_video(video_path: str, caption: str = "", chat_id: str = None) -> None:
+def send_video(video_path: str, caption: str = "", chat_id: str = None):
     target_chat = chat_id or TELEGRAM_CHAT_ID
     if not TELEGRAM_BOT_TOKEN or not target_chat:
         print("Telegram configuration is missing. Cannot send video.")
-        return
+        return None
         
     if not os.path.exists(video_path):
         print(f"Video file {video_path} not found.")
-        return
+        return None
 
     url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendVideo"
     data = {
@@ -51,8 +51,37 @@ def send_video(video_path: str, caption: str = "", chat_id: str = None) -> None:
             response = requests.post(url, data=data, files=files, timeout=60)
             response.raise_for_status()
             print("Video sent to Telegram successfully!")
+            
+            # Extract and return message_id
+            result = response.json()
+            if result.get("ok") and "result" in result:
+                return result["result"].get("message_id")
     except Exception as e:
         print(f"Failed to send Telegram video: {e}")
+    return None
+
+def edit_message_caption(message_id: int, new_caption: str, chat_id: str = None) -> bool:
+    target_chat = chat_id or TELEGRAM_CHAT_ID
+    if not TELEGRAM_BOT_TOKEN or not target_chat:
+        print("Telegram configuration is missing. Cannot edit message.")
+        return False
+
+    url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/editMessageCaption"
+    payload = {
+        "chat_id": target_chat,
+        "message_id": message_id,
+        "caption": new_caption,
+        "parse_mode": "HTML"
+    }
+    
+    try:
+        response = requests.post(url, json=payload, timeout=10)
+        response.raise_for_status()
+        print(f"Message {message_id} caption updated successfully!")
+        return True
+    except Exception as e:
+        print(f"Failed to edit Telegram message caption: {e}")
+        return False
 
 def get_run_details() -> str:
     run_id = os.environ.get("GITHUB_RUN_ID", "Unknown")
