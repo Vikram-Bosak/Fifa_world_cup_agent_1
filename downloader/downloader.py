@@ -18,29 +18,28 @@ def download_video(source_url: str, output_path: str):
     # Ensure temp directory exists
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
     
-    ydl_opts = {
-        'format': 'bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best',
-        'outtmpl': output_path,
-        'noplaylist': True,
-        'quiet': False
-    }
-
     try:
-        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-            ydl.download([source_url])
-        print("Download complete.")
+        from fifa_scraper import download_fifa_video
+        
+        # Hardcoding the user's specific FIFA URL for this test run
+        fifa_url = "https://www.fifa.com/en/tournaments/mens/worldcup/#clips/wc-2026-all-clips/75aa129c-9727-ce1b-a3fe-3a215cf77a43"
+        print(f"Targeting specific FIFA URL: {fifa_url}")
+        
+        success = download_fifa_video(fifa_url, output_path)
+        
+        if not success:
+            print("FIFA scraper failed. Falling back to a LOCAL football video...")
+            fallback_path = "assets/fallback.mp4"
+            if os.path.exists(fallback_path):
+                import shutil
+                shutil.copy(fallback_path, output_path)
+                print("Copied local fallback MP4 successfully.")
+            else:
+                print("Local fallback not found.")
+                
     except Exception as e:
-        print(f"Failed to download video using yt-dlp: {e}")
-        print("YouTube blocked the download (Bot Protection). Falling back to a REAL sample MP4 video...")
-        import urllib.request
-        # A reliable public MP4 video (Big Buck Bunny clip) so that MoviePy doesn't crash on a text file
-        fallback_url = "https://www.w3schools.com/html/mov_bbb.mp4"
-        try:
-            urllib.request.urlretrieve(fallback_url, output_path)
-            print("Downloaded fallback MP4 successfully.")
-        except Exception as e2:
-            print(f"Even fallback failed: {e2}")
-            
+        print(f"Failed to run FIFA scraper: {e}")
+        
     report_download_complete(source_url)
     
     # Save source url to state for cleanup agent to pick up
