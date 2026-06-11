@@ -200,8 +200,12 @@ def run_downloader():
                     except:
                         pass
                 
+                unique_id = f"FIFA_{datetime.utcnow().strftime('%Y%m%d')}_{tweet_id}"
+                
                 tasks.append({
-                    "id": tweet_id,
+                    "id": unique_id,
+                    "tweet_id": tweet_id,
+                    "local_path": output_path,
                     "message_id": message_id,
                     "status": "DOWNLOADED",
                     "timestamp": datetime.utcnow().isoformat()
@@ -214,15 +218,9 @@ def run_downloader():
             print(f"Sending Detailed Report to Channel 2 (Reports)...")
             send_video(output_path, caption=caption, chat_id=TELEGRAM_REPORT_CHAT_ID)
             
-            # Mark as done
+            # Mark as done in archive
             append_to_archive(tweet_id)
             append_to_archive(f"twitter {tweet_id}")
-            
-            # Cleanup
-            try:
-                os.remove(output_path)
-            except:
-                pass
                 
             video_downloaded = True
             break # Stop processing other tweets for this profile since we only want 1 video

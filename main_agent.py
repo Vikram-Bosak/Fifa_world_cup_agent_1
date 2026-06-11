@@ -33,7 +33,8 @@ def main():
         return
 
     # 2. Run Editor
-    for task_id, task in tasks.items():
+    for task in tasks:
+        task_id = task.get("id")
         if task.get("status") == "DOWNLOADED":
             if not can_edit():
                 print("Daily edit limit reached. Skipping remaining edits.")
@@ -71,7 +72,8 @@ def main():
                 json.dump(tasks, f, indent=4)
 
     # 3. Run Uploader
-    for task_id, task in tasks.items():
+    for task in tasks:
+        task_id = task.get("id")
         if task.get("status") == "EDITED":
             if not can_upload():
                 print("Daily upload limit reached. Skipping remaining uploads.")
