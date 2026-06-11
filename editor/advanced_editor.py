@@ -1,88 +1,79 @@
 import os
 import sys
-import numpy as np
-from PIL import Image, ImageDraw, ImageFont
-from moviepy.editor import VideoFileClip, ImageClip, CompositeVideoClip, concatenate_videoclips
-import moviepy.video.fx.all as vfx
+import subprocess
+from dotenv import load_dotenv
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from common.telegram import send_video
 
-def create_text_image(text, filename, size=(400, 200), color="red"):
-    img = Image.new('RGBA', size, (255, 255, 255, 0))
-    d = ImageDraw.Draw(img)
-    try:
-        # Try a standard font
-        font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 80)
-    except:
-        font = ImageFont.load_default()
-    
-    # Very basic text drawing
-    d.text((50, 50), text, fill=color, font=font)
-    img.save(filename)
-    return filename
-
-def create_advanced_edit(input_path: str, logo_path: str, output_path: str):
-    print("Loading video...")
-    clip = VideoFileClip(input_path)
-    
-    # 1. Quick Cuts
-    print("Applying Quick Cuts...")
-    cuts = []
-    dur = clip.duration
-    if dur > 8:
-        cuts.append(clip.subclip(0, 3))
-        cuts.append(clip.subclip(4, 7))
-        cuts.append(clip.subclip(8, min(dur, 12)))
-        final_clip = concatenate_videoclips(cuts)
-    else:
-        final_clip = clip
-        
-    final_clip = final_clip.fx(vfx.speedx, 1.1)
-    
-    # 2. Overlays
-    print("Adding Visual Overlays...")
-    logo = ImageClip(logo_path).resize(width=150)
-    logo = logo.set_position(("right", "top")).set_duration(final_clip.duration).margin(right=20, top=20, opacity=0)
-    
-    # Create temp images for text
-    os.makedirs("temp", exist_ok=True)
-    iq_path = create_text_image("0 IQ!", "temp/iq_text.png", color="red")
-    cross_path = create_text_image("XXX", "temp/cross_text.png", color="red")
-    
-    txt_0iq = ImageClip(iq_path).set_position('center').set_start(1).set_duration(1.5).crossfadein(0.2).crossfadeout(0.2)
-    txt_cross = ImageClip(cross_path).set_position(('left', 'center')).set_start(3).set_duration(1).crossfadein(0.1)
-
-    overlays = [final_clip, logo, txt_0iq, txt_cross]
-    
-    composite = CompositeVideoClip(overlays)
-    
-    print("Rendering final video...")
+def create_reels_edit(input_path: str, logo_path: str, output_path: str):
+    print("Starting 9:16 Reels/Shorts Editing Process...")
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
-    composite.write_videofile(
-        output_path, 
-        codec='libx264', 
-        audio_codec='aac', 
-        temp_audiofile='temp-audio.m4a', 
-        remove_temp=True,
-        preset='fast'
+    
+    # We use FFmpeg to do:
+    # 1. Background: scale to fill 1080x1920, crop, and heavily blur.
+    # 2. Foreground: scale to fit within 1080x1920 without cropping.
+    # 3. Logo: scale to width 180, place at top-right.
+    # 4. Text: Draw text "CRAZIEST FIFA MOMENT!" at the top center.
+    
+    # We will use the built-in drawtext filter. Note that emojis might not render 
+    # depending on the font, so we use a safe bold text.
+    
+    filter_complex = (
+        # Background: Scale to cover 1080x1920, crop center, blur, and darken slightly
+        "[0:v]scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,boxblur=luma_radius=min(h\\,w)/20:luma_power=1:chroma_radius=min(cw\\,ch)/20:chroma_power=1,colorchannelmixer=rr=0.7:gg=0.7:bb=0.7[bg];"
+        
+        # Foreground: Scale to fit inside 1080x1920
+        "[0:v]scale=1080:1920:force_original_aspect_ratio=decrease[fg];"
+        
+        # Logo: Scale to width 200
+        "[1:v]scale=200:-1[logo];"
+        
+        # Combine Background and Foreground
+        "[bg][fg]overlay=(W-w)/2:(H-h)/2[merged];"
+        
+        # Add Logo to Top-Right
+        "[merged][logo]overlay=W-w-30:30[with_logo];"
+        
+        # Add Text (Headline) at the top center
+        "[with_logo]drawtext=text='CRAZIEST FIFA MOMENT!':fontcolor=white:fontsize=80:x=(w-text_w)/2:y=200:bordercolor=black:borderw=5:box=1:boxcolor=red@0.8:boxborderw=20[outv]"
     )
     
-    # 3. Send to Telegram
+    cmd = [
+        "ffmpeg", "-y",
+        "-i", input_path,
+        "-i", logo_path,
+        "-filter_complex", filter_complex,
+        "-map", "[outv]",
+        "-map", "0:a?", # Map original audio if it exists
+        "-c:v", "libx264",
+        "-preset", "fast",
+        "-crf", "23",
+        "-c:a", "aac",
+        "-b:a", "128k",
+        output_path
+    ]
+    
+    print("Running FFmpeg for 9:16 rendering...")
+    subprocess.run(cmd, check=True)
+    print("Video editing completed!")
+    
+    # Send to Telegram
     caption = (
-        "🔥 <b>Phase 1: Advanced Editing Style Demo</b>\n\n"
-        "<b>Features Applied:</b>\n"
-        "✂️ <b>Quick Cuts:</b> Removed boring frames (silence/inaction) to increase pacing.\n"
-        "⚡ <b>Pacing:</b> Overall speed increased by 1.1x for TikTok/Reels energy.\n"
-        "😂 <b>Humor & Overlays:</b> Auto-flashed '0 IQ!' and 'XXX' marks at action points.\n"
-        "🏷️ <b>Branding:</b> Logo tracked at the top right.\n\n"
-        "<i>(Motion Tracking & Beat-Syncing will be added in Phase 2)</i>"
+        "📱 <b>Reels/Shorts 9:16 Format Demo</b>\n\n"
+        "<b>Applied Edits:</b>\n"
+        "✅ <b>Format:</b> 1080x1920 (9:16 Vertical)\n"
+        "✅ <b>Background:</b> Blurred Padding (No action cropped!)\n"
+        "✅ <b>Foreground:</b> Original video perfectly centered\n"
+        "✅ <b>Branding:</b> Logo at Top-Right Corner\n"
+        "✅ <b>Headline:</b> Custom Hook Title added at the top\n\n"
+        "This output is 100% ready for Instagram, Facebook, and YouTube Shorts."
     )
     
     from common.telegram import TELEGRAM_REPORT_CHAT_ID
     print("Sending to Telegram...")
     send_video(output_path, caption=caption, chat_id=TELEGRAM_REPORT_CHAT_ID)
-    print("Done!")
+    print("Process finished!")
 
 if __name__ == "__main__":
-    create_advanced_edit("assets/fallback.mp4", "assets/custom_logo.png", "temp/advanced_edit.mp4")
+    create_reels_edit("assets/fallback.mp4", "assets/custom_logo.png", "temp/reels_edit.mp4")
