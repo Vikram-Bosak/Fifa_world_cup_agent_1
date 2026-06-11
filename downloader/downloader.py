@@ -42,8 +42,25 @@ def download_video(source_url: str, output_path: str):
     with open("temp/state_source_url.txt", "w") as f:
         f.write(source_url)
 
+import random
+
+def get_random_query():
+    queries = [
+        'ytsearch1:"FIFA world cup best goals short"',
+        'ytsearch1:"Messi world cup highlights short"',
+        'ytsearch1:"Ronaldo world cup skills short"',
+        'ytsearch1:"Neymar world cup goals short"',
+        'ytsearch1:"Mbappe world cup speed short"',
+        'ytsearch1:"FIFA world cup crazy moments short"',
+        'ytsearch1:"World cup funny moments short"'
+    ]
+    return random.choice(queries)
+
 if __name__ == "__main__":
-    SOURCE_URL = os.environ.get("VIDEO_SOURCE_URL", "https://www.fifa.com/en/tournaments/mens/worldcup/#clips/")
+    SOURCE_URL = os.environ.get("VIDEO_SOURCE_URL", "RANDOM_YOUTUBE_SEARCH")
+    if SOURCE_URL == "RANDOM_YOUTUBE_SEARCH":
+        SOURCE_URL = get_random_query()
+        
     OUTPUT_FILE = "temp/raw_video.mp4"
     download_video(SOURCE_URL, OUTPUT_FILE)
 

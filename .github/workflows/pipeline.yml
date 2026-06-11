@@ -4,9 +4,9 @@ on:
   workflow_dispatch:
     inputs:
       video_source_url:
-        description: 'URL of the video to download'
+        description: 'URL or ytsearch query to download'
         required: false
-        default: 'https://www.fifa.com/en/tournaments/mens/worldcup/#clips/'
+        default: 'RANDOM_YOUTUBE_SEARCH'
   schedule:
     - cron: '0 0 * * *' # Run daily at midnight (adjust as needed)
 
@@ -19,7 +19,7 @@ jobs:
       FB_ACCESS_TOKEN: ${{ secrets.FB_ACCESS_TOKEN }}
       FB_PAGE_ID: ${{ secrets.FB_PAGE_ID }}
       YOUTUBE_TOKEN_JSON: ${{ secrets.YOUTUBE_TOKEN_JSON }}
-      VIDEO_SOURCE_URL: ${{ github.event.inputs.video_source_url || 'https://www.fifa.com/en/tournaments/mens/worldcup/#clips/' }}
+      VIDEO_SOURCE_URL: ${{ github.event.inputs.video_source_url || 'RANDOM_YOUTUBE_SEARCH' }}
 
     steps:
       - name: Checkout Repository
