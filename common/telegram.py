@@ -26,6 +26,31 @@ def send_message(message: str) -> None:
     except Exception as e:
         print(f"Failed to send Telegram message: {e}")
 
+def send_video(video_path: str, caption: str = "") -> None:
+    if not TELEGRAM_BOT_TOKEN or not TELEGRAM_CHAT_ID:
+        print("Telegram configuration is missing. Cannot send video.")
+        return
+        
+    if not os.path.exists(video_path):
+        print(f"Video file {video_path} not found.")
+        return
+
+    url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendVideo"
+    data = {
+        "chat_id": TELEGRAM_CHAT_ID,
+        "caption": caption,
+        "parse_mode": "HTML"
+    }
+    
+    try:
+        with open(video_path, 'rb') as video_file:
+            files = {'video': video_file}
+            response = requests.post(url, data=data, files=files, timeout=60)
+            response.raise_for_status()
+            print("Video sent to Telegram successfully!")
+    except Exception as e:
+        print(f"Failed to send Telegram video: {e}")
+
 def get_run_details() -> str:
     run_id = os.environ.get("GITHUB_RUN_ID", "Unknown")
     workflow = os.environ.get("GITHUB_WORKFLOW", "Unknown")
