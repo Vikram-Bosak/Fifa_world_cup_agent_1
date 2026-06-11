@@ -59,15 +59,41 @@ def report_upload_complete(platform: str, url: str, title: str, description: str
     send_message(msg)
 
 def report_final_summary(summary_data: dict):
+    # Determine success status
+    job_status = summary_data.get('job_status', 'Success')
+    fb_url = summary_data.get('fb_url', 'N/A')
+    yt_url = summary_data.get('yt_url', 'N/A')
+    
+    fb_status = "Success" if fb_url != "N/A" else "Failed/Skipped"
+    yt_status = "Success" if yt_url != "N/A" else "Failed/Skipped"
+    
+    title = summary_data.get('title', 'Automated FIFA Short')
+    description = summary_data.get('description', '')
+    original_file = summary_data.get('original_file', 'downloaded_video.mp4')
+    
+    run_id = os.environ.get("GITHUB_RUN_ID", "")
+    repo_name = os.environ.get("GITHUB_REPOSITORY", "Vikram-Bosak/Fifa_world_cup_agent_1")
+    workflow_url = f"https://github.com/{repo_name}/actions/runs/{run_id}" if run_id else f"https://github.com/{repo_name}/actions"
+    repo_url = f"https://github.com/{repo_name}"
+    
     msg = (
-        f"🏁 <b>Workflow Final Summary</b>\n"
-        f"<b>Download Source:</b> {summary_data.get('source_url', 'N/A')}\n"
-        f"<b>FB Public URL:</b> {summary_data.get('fb_url', 'N/A')}\n"
-        f"<b>YT Public URL:</b> {summary_data.get('yt_url', 'N/A')}\n"
-        f"<b>Title:</b> {summary_data.get('title', 'N/A')}\n"
-        f"<b>Description:</b> {summary_data.get('description', 'N/A')}\n"
-        f"<b>Job Status:</b> {summary_data.get('job_status', 'Unknown')}\n"
-        f"<b>Execution Time:</b> {summary_data.get('execution_time', 'Unknown')} seconds\n"
-        f"{get_run_details()}"
+        f"✅ <b>Upload Successfully Completed</b>\n\n"
+        f"🎬 <b>Video Name:</b>\n"
+        f"{title}\n\n"
+        f"📤 <b>Facebook Upload Status:</b> {fb_status}\n"
+        f"📤 <b>YouTube Upload Status:</b> {yt_status}\n\n"
+        f"🏷️ <b>SEO Title:</b>\n"
+        f"{title}\n\n"
+        f"📝 <b>Description:</b>\n"
+        f"{description}\n\n"
+        f"Original File: {original_file}\n\n"
+        f"🔗 <b>Facebook Reel URL:</b>\n"
+        f"{fb_url}\n\n"
+        f"▶️ <b>YouTube Video URL:</b>\n"
+        f"{yt_url}\n\n"
+        f"📦 <b>GitHub Repository:</b>\n"
+        f"{repo_url}\n\n"
+        f"📄 <b>Workflow Run:</b>\n"
+        f"{workflow_url}"
     )
     send_message(msg)
