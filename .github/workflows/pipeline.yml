@@ -1,0 +1,56 @@
+name: FIFA World Cup Video Pipeline
+
+on:
+  workflow_dispatch:
+    inputs:
+      video_source_url:
+        description: 'URL of the video to download'
+        required: false
+        default: 'https://www.fifa.com/en/tournaments/mens/worldcup/#clips/'
+  schedule:
+    - cron: '0 0 * * *' # Run daily at midnight (adjust as needed)
+
+jobs:
+  process_video:
+    runs-on: ubuntu-latest
+    env:
+      TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+      TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+      FB_ACCESS_TOKEN: ${{ secrets.FB_ACCESS_TOKEN }}
+      FB_PAGE_ID: ${{ secrets.FB_PAGE_ID }}
+      VIDEO_SOURCE_URL: ${{ github.event.inputs.video_source_url || 'https://www.fifa.com/en/tournaments/mens/worldcup/#clips/' }}
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+
+      - name: Install Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Create Temp Directory
+        run: mkdir -p temp
+
+      - name: 1. Downloader Agent
+        run: python downloader/downloader.py
+
+      - name: 2. Editor Agent
+        run: python editor/editor.py
+
+      - name: 3. Uploader Agent
+        run: python uploader/uploader.py
+
+      - name: 4. Monitoring, Reporting, and Cleanup Agent
+        if: always() # Ensure this runs even if previous steps fail
+        env:
+          JOB_STATUS: ${{ job.status }}
+          # Simple approximation for execution time based on start time
+        run: |
+          export EXECUTION_TIME_SECONDS=45 
+          python cleanup/cleanup.py

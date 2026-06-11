@@ -1,0 +1,12 @@
+.env
+token.json
+client_secret.json
+fb_accounts.json
+venv/
+__pycache__/
+*.pyc
+*.mp4
+*.mkv
+*.jpg
+*.png
+.DS_Store
