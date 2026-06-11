@@ -1,5 +1,5 @@
 requests
-moviepy
+moviepy==1.0.3
 yt-dlp
 python-dotenv
 google-api-python-client
