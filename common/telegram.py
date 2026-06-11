@@ -8,15 +8,17 @@ load_dotenv()
 
 TELEGRAM_BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN")
 TELEGRAM_CHAT_ID = os.environ.get("TELEGRAM_CHAT_ID")
+TELEGRAM_REPORT_CHAT_ID = os.environ.get("TELEGRAM_REPORT_CHAT_ID", TELEGRAM_CHAT_ID)
 
-def send_message(message: str) -> None:
-    if not TELEGRAM_BOT_TOKEN or not TELEGRAM_CHAT_ID:
+def send_message(message: str, chat_id: str = None) -> None:
+    target_chat = chat_id or TELEGRAM_REPORT_CHAT_ID
+    if not TELEGRAM_BOT_TOKEN or not target_chat:
         print("Telegram configuration is missing. Cannot send message:", message)
         return
 
     url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
     payload = {
-        "chat_id": TELEGRAM_CHAT_ID,
+        "chat_id": target_chat,
         "text": message,
         "parse_mode": "HTML"
     }
@@ -26,8 +28,9 @@ def send_message(message: str) -> None:
     except Exception as e:
         print(f"Failed to send Telegram message: {e}")
 
-def send_video(video_path: str, caption: str = "") -> None:
-    if not TELEGRAM_BOT_TOKEN or not TELEGRAM_CHAT_ID:
+def send_video(video_path: str, caption: str = "", chat_id: str = None) -> None:
+    target_chat = chat_id or TELEGRAM_CHAT_ID
+    if not TELEGRAM_BOT_TOKEN or not target_chat:
         print("Telegram configuration is missing. Cannot send video.")
         return
         
@@ -37,7 +40,7 @@ def send_video(video_path: str, caption: str = "") -> None:
 
     url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendVideo"
     data = {
-        "chat_id": TELEGRAM_CHAT_ID,
+        "chat_id": target_chat,
         "caption": caption,
         "parse_mode": "HTML"
     }

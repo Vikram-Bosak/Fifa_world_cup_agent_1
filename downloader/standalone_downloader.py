@@ -179,8 +179,12 @@ def run_downloader():
                 "Download Status: Successfully Downloaded and Sent to Telegram Channel"
             )
             
-            print(f"Sending {output_path} to Telegram...")
-            send_video(output_path, caption=caption)
+            print(f"Sending RAW video to Channel 1 (Queue)...")
+            send_video(output_path, caption=f"RAW_VIDEO_ID: {tweet_id}")
+            
+            from common.telegram import TELEGRAM_REPORT_CHAT_ID
+            print(f"Sending Detailed Report to Channel 2 (Reports)...")
+            send_video(output_path, caption=caption, chat_id=TELEGRAM_REPORT_CHAT_ID)
             
             # Mark as done
             append_to_archive(tweet_id)
