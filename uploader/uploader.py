@@ -13,11 +13,15 @@ from common.limits import can_upload, increment_upload
 from common.telegram import send_message
 
 def is_us_upload_time():
-    """Check if current time is between 8 AM and 10 PM US EST"""
+    """Check if current time is within US EST peak social media hours"""
     # EST is UTC-5 (approximating without checking daylight savings for simplicity)
     utc_now = datetime.now(timezone.utc)
     est_time = utc_now - timedelta(hours=5)
-    return 8 <= est_time.hour < 22
+    
+    hour = est_time.hour
+    # Peak US hours: 8-10 AM (Morning), 12-2 PM (Lunch), 5-8 PM (Evening)
+    is_peak = (8 <= hour < 10) or (12 <= hour < 14) or (17 <= hour < 20)
+    return is_peak
 
 def upload_to_facebook(video_path, description):
     page_id = os.getenv("FB_PAGE_ID")
@@ -26,13 +30,22 @@ def upload_to_facebook(video_path, description):
     if not page_id or not access_token:
         raise Exception("Facebook credentials missing in .env")
         
+    file_size = os.path.getsize(video_path)
+    
     print("Initializing Facebook Reels upload session...")
     url = f"https://graph.facebook.com/v19.0/{page_id}/video_reels"
-    payload = {"upload_phase": "start", "access_token": access_token}
-    res = requests.post(url, data=payload).json()
+    payload = {"upload_phase": "start", "access_token": access_token, "file_size": file_size}
+    try:
+        res_raw = requests.post(url, data=payload)
+        res_raw.raise_for_status()
+        res = res_raw.json()
+    except requests.exceptions.HTTPError as e:
+        raise Exception(f"FB Start HTTP Error: {e.response.text if e.response else str(e)}")
+    except Exception as e:
+        raise Exception(f"FB Start Request Error: {e}")
     
     if 'video_id' not in res:
-        raise Exception(f"FB Start Error: {res}")
+        raise Exception(f"FB Start Logic Error: {res}")
         
     video_id = res['video_id']
     upload_url = res['upload_url']
@@ -41,10 +54,17 @@ def upload_to_facebook(video_path, description):
     headers = {
         "Authorization": f"OAuth {access_token}", 
         "offset": "0", 
-        "file_size": str(os.path.getsize(video_path))
+        "file_size": str(file_size)
     }
     with open(video_path, 'rb') as f:
-        upload_res = requests.post(upload_url, headers=headers, data=f).json()
+        video_data = f.read()
+        try:
+            upload_res_raw = requests.post(upload_url, headers=headers, data=video_data)
+            upload_res_raw.raise_for_status()
+        except requests.exceptions.HTTPError as e:
+            raise Exception(f"FB Upload HTTP Error: {e.response.text if e.response else str(e)}")
+        except Exception as e:
+            raise Exception(f"FB Upload Request Error: {e}")
         
     print("Publishing Reel...")
     payload_finish = {
@@ -52,12 +72,17 @@ def upload_to_facebook(video_path, description):
         "access_token": access_token,
         "video_id": video_id,
         "video_state": "PUBLISHED",
-        "description": description
-    }
-    finish_res = requests.post(url, data=payload_finish).json()
+    try:
+        finish_res_raw = requests.post(url, data=payload_finish)
+        finish_res_raw.raise_for_status()
+        finish_res = finish_res_raw.json()
+    except requests.exceptions.HTTPError as e:
+        raise Exception(f"FB Finish HTTP Error: {e.response.text if e.response else str(e)}")
+    except Exception as e:
+        raise Exception(f"FB Finish Request Error: {e}")
     
     if not finish_res.get("success"):
-        raise Exception(f"FB Finish Error: {finish_res}")
+        raise Exception(f"FB Finish Logic Error: {finish_res}")
         
     return f"https://www.facebook.com/reel/{video_id}"
 
@@ -109,7 +134,7 @@ def upload_to_youtube(video_path, title, description):
     video_id = response.get('id')
     return f"https://www.youtube.com/shorts/{video_id}"
 
-def run_upload_pipeline(video_path: str):
+def run_upload_pipeline(video_path: str, task_id: str = "default"):
     if not os.path.exists(video_path):
         print(f"Error: Video file {video_path} not found.")
         return
@@ -126,22 +151,21 @@ def run_upload_pipeline(video_path: str):
         
     print(f"Starting Upload Process for {video_path}")
     
-    # Load Hook Line from state file if available
-    hook_line = None
+    # Load full AI context state file if available
     original_file = video_path
-    state_file = "temp/state_upload.json"
+    state_file = f"temp/state_upload_{task_id}.json"
+    state_data = {}
     if os.path.exists(state_file):
         try:
             with open(state_file, "r") as f:
                 state_data = json.load(f)
-                hook_line = state_data.get("hook_line")
-                original_file = state_data.get("original_file", video_path)
+                original_file = state_data.get("source_url", video_path)
         except:
             pass
             
-    # Generate Metadata via AI LLM Stage 2
+    # Generate Metadata via Context-Aware AI LLM Stage 2
     from common.seo_generator import generate_upload_metadata
-    seo_data = generate_upload_metadata(hook_line)
+    seo_data = generate_upload_metadata(state_data)
     title = seo_data["title"]
     base_description = seo_data["description"]
     facebook_caption = seo_data.get("facebook_caption", base_description)
@@ -170,23 +194,15 @@ def run_upload_pipeline(video_path: str):
     except Exception as e:
         yt_err = str(e)
         print(f"YouTube upload failed: {yt_err}")
+        if "invalid_grant" in yt_err or "RefreshError" in yt_err or "expired" in yt_err.lower():
+            print("Hint: YouTube token.json is likely expired. Please re-authenticate locally and update token.json.")
         
     # Increment quota if at least one succeeded
     if fb_url != "Failed" or yt_url != "Failed":
         increment_upload()
         
-    # Send Final Telegram Report
-    from common.telegram import report_final_summary
-    summary_data = {
-        'title': title,
-        'description': yt_desc,
-        'fb_url': fb_url if fb_url != 'Failed' else 'N/A',
-        'yt_url': yt_url if yt_url != 'Failed' else 'N/A',
-        'original_file': original_file,
-        'job_status': 'Success' if fb_url != 'Failed' or yt_url != 'Failed' else 'Failed'
-    }
-    report_final_summary(summary_data)
-    print("Upload reporting finished!")
+    job_status = 'SUCCESS' if (fb_url != 'Failed' or yt_url != 'Failed') else 'FAILED'
+    return fb_url, yt_url, job_status, fb_err, yt_err
 
 if __name__ == "__main__":
     # Test Upload with the edited dynamic video

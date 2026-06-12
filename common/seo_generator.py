@@ -15,58 +15,85 @@ def _get_client():
         api_key=api_key
     )
 
-def generate_video_hook() -> str:
+def analyze_video_for_editing(context: dict) -> dict:
     """
-    Stage 1: Generates a short, catchy hook line for the video editor.
+    Stage 1: Analyzes video context and generates Hook Line, Short Headline, Overlay Text, and Category.
     """
     client = _get_client()
-    fallback_hooks = ["INCREDIBLE GOAL!", "MESSI MAGIC!", "WORLD CUP SHOCKER!", "EPIC FIFA MOMENT"]
+    
+    fallback = {
+        "category": "Highlight",
+        "hook_line": "INCREDIBLE MOMENT!",
+        "short_headline": "MUST WATCH",
+        "overlay_text": "EPIC FOOTBALL SKILLS"
+    }
     
     if not client:
-        print("Warning: NVIDIA_API_KEY not found. Using fallback hook.")
-        return random.choice(fallback_hooks)
+        print("Warning: NVIDIA_API_KEY not found. Using fallback analysis.")
+        return fallback
         
-    prompt = """
-    You are an expert sports video editor. I need a single, extremely catchy, short headline (1 to 4 words max) to overlay on a viral FIFA World Cup highlight video.
-    Examples: "INCREDIBLE GOAL!", "MESSI MAGIC!", "LAST-MINUTE DRAMA!", "WORLD CUP SHOCKER!"
-    Return strictly ONLY the headline text, with NO quotes, NO extra words, NO markdown. Just the uppercase text.
+    prompt = f"""
+    You are an expert sports video editor. Analyze the following video information:
+    Title/Text: {context.get('title', 'Unknown')}
+    Source Profile: {context.get('source', 'Unknown')}
+    Source URL: {context.get('source_url', 'Unknown')}
+    
+    Based on this, generate the following details for the video overlay:
+    - "category": The video category (e.g., Goal Highlight, Celebration, Transfer News, Interview).
+    - "hook_line": A single, extremely catchy, short headline (1 to 4 words max) including 1-2 relevant emojis like "MESSI MAGIC! 🐐🔥".
+    - "short_headline": A brief contextual headline (2-5 words).
+    - "overlay_text": A descriptive text for the bottom banner (2-5 words) including 1 relevant emoji like "INCREDIBLE FREE KICK ⚽".
+    
+    Return strictly ONLY a valid JSON object without any markdown wrapping or extra text.
     """
     
     try:
         completion = client.chat.completions.create(
             model="nvidia/nemotron-3-ultra-550b-a55b",
             messages=[{"role": "user", "content": prompt}],
-            temperature=0.8,
-            max_tokens=20,
+            temperature=0.7,
+            max_tokens=500,
         )
-        content = completion.choices[0].message.content.strip().replace('"', '').replace("'", "")
-        if len(content.split()) > 6: # if AI hallucinates too long
-            return random.choice(fallback_hooks)
-        return content.upper()
+        content = completion.choices[0].message.content.strip()
+        if content.startswith("```json"): content = content[7:]
+        if content.startswith("```"): content = content[3:]
+        if content.endswith("```"): content = content[:-3]
+        
+        data = json.loads(content.strip())
+        
+        for key in fallback.keys():
+            if key not in data:
+                data[key] = fallback[key]
+                
+        return data
     except Exception as e:
-        print(f"Error calling NVIDIA LLM API for hook: {e}")
-        return random.choice(fallback_hooks)
+        print(f"Error calling NVIDIA LLM API for editing analysis: {e}")
+        return fallback
 
-def generate_upload_metadata(hook_line: str = None) -> dict:
+def generate_upload_metadata(context: dict) -> dict:
     """
-    Stage 2: Generates SEO metadata (Title, Description, Tags, Hashtags) for uploading.
+    Stage 2: Generates SEO metadata based on the full editing context.
     """
     client = _get_client()
     if not client:
         print("Warning: NVIDIA_API_KEY not found. Using fallback SEO data.")
         return _get_fallback_metadata()
         
-    topic = f"The video hook line is '{hook_line}'." if hook_line else "This is a crazy FIFA World Cup football moment."
-    
     prompt = f"""
     You are an expert sports social media manager. I am uploading a viral FIFA World Cup highlight reel.
-    {topic}
-    Please generate the following details and return ONLY a valid JSON object without any markdown wrapping or extra text.
+    Here is the video information and editing analysis:
+    Original Title/Text: {context.get('title', 'Unknown')}
+    Source Profile: {context.get('source', 'Unknown')}
+    Category: {context.get('category', 'Highlight')}
+    Hook Line Used: {context.get('hook_line', '')}
+    Overlay Text Used: {context.get('overlay_text', '')}
+    
+    Please generate the following details and return ONLY a valid JSON object without any markdown wrapping.
     The JSON must contain these exact keys:
     - "title": A catchy, viral SEO title (under 60 characters).
     - "description": An engaging, SEO-optimized YouTube Shorts description (3-4 sentences) targeting US audience.
     - "facebook_caption": A short, punchy caption for Facebook Reels with a call to action.
-    - "hashtags": A string of 5-7 viral hashtags (e.g., "#FIFA #Soccer #Viral").
+    - "hashtags": A string of 5-7 viral hashtags (e.g., "#FIFA #Soccer #Viral"). Include the category if applicable.
     - "tags": A list of 5-8 SEO tags (strings) for YouTube.
     """
     
@@ -107,7 +134,17 @@ def _get_fallback_metadata():
     }
 
 if __name__ == "__main__":
-    hook = generate_video_hook()
-    print("Generated Hook:", hook)
-    print("Generated Metadata:")
-    print(json.dumps(generate_upload_metadata(hook), indent=4))
+    dummy_context = {
+        "title": "Messi Scores Stunning Free Kick against France",
+        "source": "FIFA World Cup",
+        "source_url": "https://x.com/FIFAWorldCup/status/1234567890"
+    }
+    analysis = analyze_video_for_editing(dummy_context)
+    print("Editing Analysis:")
+    print(json.dumps(analysis, indent=4))
+    
+    # Merge for Stage 2
+    dummy_context.update(analysis)
+    
+    print("\nGenerated Metadata:")
+    print(json.dumps(generate_upload_metadata(dummy_context), indent=4))

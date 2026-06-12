@@ -7,6 +7,7 @@ import json
 import re
 from datetime import datetime
 from dotenv import load_dotenv
+import feedparser
 
 # Ensure we can import from the common module
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -15,10 +16,13 @@ from common.limits import can_download, increment_download
 
 load_dotenv()
 
-TARGET_PROFILES = [
-    {"name": "FIFA World Cup", "username": "FIFAWorldCup"},
-    {"name": "Cristiano Ronaldo", "username": "Cristiano"}
-]
+# We expect RSS_FEED_URLS in .env separated by comma
+RSS_FEED_URLS_ENV = os.getenv("RSS_FEED_URLS", "")
+RSS_FEED_URLS = [url.strip() for url in RSS_FEED_URLS_ENV.split(",") if url.strip()]
+
+# Fallback for testing if no URL is provided
+if not RSS_FEED_URLS:
+    print("Warning: No RSS_FEED_URLS found in .env. Downloader will not find any videos.")
 
 ARCHIVE_FILE = os.path.join(os.path.dirname(__file__), "download_archive.txt")
 TEMP_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "temp")
@@ -34,109 +38,65 @@ def append_to_archive(video_id):
         f.write(f"{video_id}\n")
 
 def run_downloader():
-    print("Starting standalone downloader with Priority-Based Profile Scanning...")
+    print("Starting standalone downloader with RSS Feed Scanning...")
     
     if not can_download():
-        print("Daily Download Limit Reached (10/10). Exiting downloader.")
+        print("Daily Download Limit Reached (5/5). Exiting downloader.")
         return
         
     os.makedirs(TEMP_DIR, exist_ok=True)
     
-    # Clear temp dir before starting
-    for f in glob.glob(os.path.join(TEMP_DIR, "*.mp4")):
-        try:
-            os.remove(f)
-        except Exception as e:
-            pass
-
     archive = load_archive()
-    today_utc = datetime.utcnow().date()
     
-    HEADERS = {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36",
-        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
-        "Accept-Language": "en-US,en;q=0.5",
-    }
+    archive = load_archive()
 
-    for profile in TARGET_PROFILES:
-        profile_name = profile["name"]
-        username = profile["username"]
-        
-        print(f"\n--- Scanning Profile: {profile_name} (@{username}) ---")
-        syndication_url = f"https://syndication.twitter.com/srv/timeline-profile/screen-name/{username}"
-        
+    for feed_url in RSS_FEED_URLS:
+        print(f"\n--- Scanning RSS Feed: {feed_url} ---")
         try:
-            response = requests.get(syndication_url, headers=HEADERS, timeout=15)
-            response.raise_for_status()
+            feed = feedparser.parse(feed_url)
         except Exception as e:
-            print(f"Failed to fetch syndication timeline for {username}: {e}")
-            continue
-
-        # Extract JSON data from HTML
-        match = re.search(r'<script id="__NEXT_DATA__" type="application/json">(.+?)</script>', response.text)
-        if not match:
-            print(f"Could not find timeline data for {username}.")
-            continue
-
-        try:
-            data = json.loads(match.group(1))
-            tweets = data['props']['pageProps']['timeline']['entries']
-        except Exception as e:
-            print(f"Failed to parse timeline JSON for {username}: {e}")
+            print(f"Failed to fetch RSS feed {feed_url}: {e}")
             continue
 
         video_downloaded = False
 
-        for t in tweets:
-            tweet = t.get('content', {}).get('tweet')
-            if not tweet:
-                continue
-                
-            tweet_id = tweet.get('id_str')
+        for entry in feed.entries:
+            tweet_id = entry.get('id', entry.get('link', ''))
+            safe_id = re.sub(r'[^a-zA-Z0-9_]', '_', tweet_id)[-20:]
             
-            # Check if already processed
-            if f"twitter {tweet_id}" in archive or tweet_id in archive:
+            if safe_id in archive:
                 continue
 
-            # Check date (e.g., "Wed Jun 10 17:28:00 +0000 2026")
-            created_at_str = tweet.get('created_at')
-            if not created_at_str:
-                continue
-                
-            try:
-                tweet_date = datetime.strptime(created_at_str, "%a %b %d %H:%M:%S +0000 %Y").date()
-            except ValueError:
-                continue
-                
-            # Only process TODAY's posts
-            if tweet_date != today_utc:
-                continue
-
-            # Check if it has a video
-            ext_entities = tweet.get('extended_entities', {})
-            media_list = ext_entities.get('media', [])
-            if not media_list:
-                continue
-                
-            media = media_list[0]
-            if 'video_info' not in media:
-                continue
-                
-            variants = media['video_info'].get('variants', [])
-            # Find highest quality mp4
-            mp4s = [v for v in variants if v.get('content_type') == 'video/mp4']
-            if not mp4s:
-                continue
-                
-            best_mp4 = max(mp4s, key=lambda x: x.get('bitrate', 0))
-            video_url = best_mp4.get('url')
+            video_url = None
+            if hasattr(entry, 'media_content'):
+                for media in entry.media_content:
+                    if media.get('type', '').startswith('video/'):
+                        video_url = media.get('url')
+                        break
+            if not video_url and hasattr(entry, 'enclosures'):
+                for enc in entry.enclosures:
+                    if enc.get('type', '').startswith('video/'):
+                        video_url = enc.get('href')
+                        break
+            
+            if not video_url:
+                link = entry.get('link')
+                if link and ('x.com' in link or 'twitter.com' in link):
+                    import yt_dlp
+                    ydl_opts = {'format': 'best', 'quiet': True, 'get_url': True}
+                    try:
+                        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+                            info = ydl.extract_info(link, download=False)
+                            video_url = info.get('url')
+                    except Exception:
+                        pass
+                        
             if not video_url:
                 continue
-
-            print(f"Found new video for today! Tweet ID: {tweet_id}")
+                
+            print(f"Found new video! ID: {safe_id}")
             
-            # Download the video
-            output_path = os.path.join(TEMP_DIR, f"{tweet_id}.mp4")
+            output_path = os.path.join(TEMP_DIR, f"{safe_id}.mp4")
             try:
                 print(f"Downloading {video_url}...")
                 video_req = requests.get(video_url, stream=True, timeout=30)
@@ -145,92 +105,57 @@ def run_downloader():
                     for chunk in video_req.iter_content(chunk_size=8192):
                         f.write(chunk)
             except Exception as e:
-                print(f"Failed to download video {tweet_id}: {e}")
+                print(f"Failed to download video {safe_id}: {e}")
                 continue
 
-            # Extract metadata
-            tweet_text = tweet.get('full_text', tweet.get('text', 'FIFA World Cup Highlight'))
-            title_match = re.sub(r'https?://\S+', '', tweet_text).strip()
-            if not title_match:
-                title_match = "FIFA World Cup Highlight"
-            elif len(title_match) > 60:
+            title_match = entry.get('title', 'FIFA World Cup Highlight')
+            if len(title_match) > 60:
                 title_match = title_match[:57] + "..."
                 
-            try:
-                upload_dt = datetime.strptime(created_at_str, "%a %b %d %H:%M:%S +0000 %Y")
-                upload_date_str = upload_dt.strftime("%d %B %Y").lstrip("0")
-                upload_time_str = upload_dt.strftime("%I:%M %p UTC")
-            except:
-                upload_date_str = "Unknown"
-                upload_time_str = "Unknown"
-                
             download_dt = datetime.utcnow()
-            download_time_str = download_dt.strftime("%I:%M %p UTC")
             
-            duration_ms = media['video_info'].get('duration_millis', 0)
-            video_type = "Short Video" if duration_ms and duration_ms < 60000 else "Long Video"
+            post_time = datetime.utcnow().strftime('%Y%m%d_%H%M%S')
+            post_id = f"{post_time}_{safe_id}"
             
-            source_url = f"https://x.com/{username}/status/{tweet_id}"
+            source_url = entry.get('link', feed_url)
             
-            caption = (
-                "✅ New FIFA Video Downloaded\n\n"
-                f"Video Title: {title_match}\n\n"
-                f"Source Profile Name: {profile_name}\n\n"
-                f"Source Username: @{username}\n\n"
-                f"Original Twitter/X URL:\n{source_url}\n\n"
-                f"Upload Date: {upload_date_str}\n\n"
-                f"Upload Time: {upload_time_str}\n\n"
-                f"Download Time: {download_time_str}\n\n"
-                f"Video Type: {video_type}\n\n"
-                "Download Status: Successfully Downloaded and Sent to Telegram Channel"
+            file_name = os.path.basename(output_path)
+            message_text = (
+                f"POST_ID: {post_id}\n\n"
+                f"STATUS: DOWNLOADED\n\n"
+                f"TITLE: {title_match}\n\n"
+                f"SOURCE: RSS_FEED\n\n"
+                f"SOURCE_URL: {source_url}\n\n"
+                f"DOWNLOAD_TIME: {download_dt.strftime('%Y-%m-%d %H:%M UTC')}\n\n"
+                f"FILE_NAME: {file_name}"
             )
             
-            print(f"Sending RAW video to Channel 1 (Queue)...")
-            raw_caption = f"STATUS: 🔴 DOWNLOADED | ID: {tweet_id}"
-            message_id = send_video(output_path, caption=raw_caption)
+            print(f"Sending RAW video to Download Channel (Queue)...")
+            message_id, file_id = send_video(output_path, caption=message_text)
             
-            if message_id:
-                # Save task for Editor agent
-                pending_file = os.path.join(TEMP_DIR, "pending_tasks.json")
-                tasks = []
-                if os.path.exists(pending_file):
-                    try:
-                        with open(pending_file, "r") as f:
-                            tasks = json.load(f)
-                    except:
-                        pass
-                
-                unique_id = f"FIFA_{datetime.utcnow().strftime('%Y%m%d')}_{tweet_id}"
-                
-                tasks.append({
-                    "id": unique_id,
-                    "tweet_id": tweet_id,
-                    "local_path": output_path,
+            if message_id and file_id:
+                print("Video successfully stored in Telegram cloud. Kept local file for sequential processing.")
+                video_data = {
+                    "id": post_id,
+                    "tweet_id": safe_id,
+                    "raw_file_id": file_id,
                     "message_id": message_id,
                     "status": "DOWNLOADED",
-                    "timestamp": datetime.utcnow().isoformat()
-                })
-                
-                with open(pending_file, "w") as f:
-                    json.dump(tasks, f, indent=4)
-                    
-            from common.telegram import TELEGRAM_REPORT_CHAT_ID
-            print(f"Sending Detailed Report to Channel 2 (Reports)...")
-            send_video(output_path, caption=caption, chat_id=TELEGRAM_REPORT_CHAT_ID)
+                    "title": title_match,
+                    "source": "RSS_FEED",
+                    "source_url": source_url,
+                    "download_time": download_dt.strftime('%Y-%m-%d %H:%M:%S UTC'),
+                    "timestamp": datetime.utcnow().isoformat(),
+                    "local_path": output_path
+                }
             
-            # Mark as done in archive
-            append_to_archive(tweet_id)
-            append_to_archive(f"twitter {tweet_id}")
-                
-            video_downloaded = True
-            break # Stop processing other tweets for this profile since we only want 1 video
-
-        if video_downloaded:
+            append_to_archive(safe_id)
             increment_download()
-            print("Successfully downloaded a video. Stopping the scanning process to respect priority order.")
-            return # Stop scanning any other profiles entirely
-            
-    print("No new videos found in any of the targeted profiles.")
+            print("Successfully downloaded a video.")
+            return video_data
+
+    print("No new videos found in RSS feeds.")
+    return None
 
 if __name__ == "__main__":
     run_downloader()
