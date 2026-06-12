@@ -107,39 +107,29 @@ def run_single_sequence():
     cleanup_temp()
     return True
 
-def run_sequential_pipeline():
-    print("Starting Sequential Pipeline Monitor...")
+def run_action_mode():
+    print("Starting Pipeline in GitHub Action Mode...")
     
-    while True:
-        # Check upload limit first
-        if not can_upload():
-            print("Daily upload limit reached (5/5). Sleeping for 1 hour...")
-            time.sleep(3600)
-            continue
-            
-        if not is_us_peak_time():
-            print("Not currently US peak time. Waiting for 10 minutes...")
-            time.sleep(600)
-            continue
-            
-        # If it IS peak time and we can upload, add human-like random delay
-        delay_minutes = random.randint(1, 15)
-        print(f"US Peak Time active! Sleeping for {delay_minutes} minutes to simulate human behavior...")
-        time.sleep(delay_minutes * 60)
+    # Check upload limit first
+    if not can_upload():
+        print("Daily upload limit reached (5/5). Exiting...")
+        return
         
-        # Double check limit after waking up just in case
-        if not can_upload():
-            continue
-            
-        success = run_single_sequence()
+    delay_minutes = random.randint(1, 15)
+    print(f"Adding human-like random delay of {delay_minutes} minutes before starting...")
+    time.sleep(delay_minutes * 60)
+    
+    # Double check limit after waking up just in case
+    if not can_upload():
+        return
         
-        print("Sequence complete. Waiting 1 hour before next attempt to spread out posts...")
-        time.sleep(3600)
+    run_single_sequence()
+    print("Pipeline run completed. Exiting.")
 
 if __name__ == "__main__":
     os.makedirs("temp", exist_ok=True)
     if "--test" in sys.argv:
-        print("Running in TEST MODE. Bypassing peak time and delays for a single run...")
+        print("Running in TEST MODE. Bypassing delays for a single run...")
         run_single_sequence()
     else:
-        run_sequential_pipeline()
+        run_action_mode()

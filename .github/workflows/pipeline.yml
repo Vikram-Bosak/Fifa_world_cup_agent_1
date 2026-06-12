@@ -44,20 +44,5 @@ jobs:
       - name: Create Temp Directory
         run: mkdir -p temp
 
-      - name: 1. Downloader Agent
-        run: python downloader/downloader.py
-
-      - name: 2. Editor Agent
-        run: python editor/editor.py
-
-      - name: 3. Uploader Agent
-        run: python uploader/uploader.py
-
-      - name: 4. Monitoring, Reporting, and Cleanup Agent
-        if: always() # Ensure this runs even if previous steps fail
-        env:
-          JOB_STATUS: ${{ job.status }}
-          # Simple approximation for execution time based on start time
-        run: |
-          export EXECUTION_TIME_SECONDS=45 
-          python cleanup/cleanup.py
+      - name: Run Sequential Pipeline (Download -> Edit -> Upload)
+        run: python main_agent.py
