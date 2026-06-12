@@ -72,6 +72,8 @@ def upload_to_facebook(video_path, description):
         "access_token": access_token,
         "video_id": video_id,
         "video_state": "PUBLISHED",
+        "description": description
+    }
     try:
         finish_res_raw = requests.post(url, data=payload_finish)
         finish_res_raw.raise_for_status()
