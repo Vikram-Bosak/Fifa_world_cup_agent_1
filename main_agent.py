@@ -46,20 +46,27 @@ def run_sequential_pipeline():
         print(f"US Peak Time active! Sleeping for {delay_minutes} minutes to simulate human behavior...")
         time.sleep(delay_minutes * 60)
         
+from common.telegram import report_final_summary, report_download_start, report_download_complete, report_edit_start, report_edit_complete, send_message
+
 def run_single_sequence():
     print("\n--- STARTING SEQUENTIAL PIPELINE (SINGLE RUN) ---")
     
     # 1. Download
+    report_download_start()
     video_data = run_downloader()
     if not video_data:
         print("No video found.")
+        send_message("⚠️ <b>Download Skipped:</b> No new videos found in RSS Feed.")
         return False
         
     task_id = video_data['id']
     raw_path = video_data['local_path']
     print(f"Downloaded Video: {task_id}")
+    report_download_complete(video_data['source_url'])
+    send_message(f"🆔 <b>Unique ID generated:</b> {task_id}")
     
     # 2. Edit
+    report_edit_start()
     edited_path = f"temp/edited_{task_id}.mp4"
     try:
         print(f"Editing Video {task_id}...")
@@ -68,12 +75,15 @@ def run_single_sequence():
         video_data['edited_file_id'] = edited_file_id
         video_data['hook_line'] = hook_line
         video_data['edit_time'] = datetime.utcnow().strftime('%Y-%m-%d %H:%M UTC')
+        report_edit_complete()
     except Exception as e:
         print(f"Editing failed: {e}")
+        send_message(f"❌ <b>Editing Failed for {task_id}:</b>\n{e}")
         cleanup_temp()
         return False
         
     # 3. Upload
+    send_message(f"🚀 <b>Uploading Started for {task_id}</b>")
     try:
         print(f"Uploading Video {task_id}...")
         fb_url, yt_url, job_status, fb_err, yt_err = run_upload_pipeline(edited_path, task_id)
@@ -91,6 +101,7 @@ def run_single_sequence():
         
     except Exception as e:
         print(f"Uploading failed: {e}")
+        send_message(f"❌ <b>Uploading Process Crashed for {task_id}:</b>\n{e}")
         
     # 4. Cleanup
     cleanup_temp()
