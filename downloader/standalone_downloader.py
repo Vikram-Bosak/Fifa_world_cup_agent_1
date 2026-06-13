@@ -69,20 +69,21 @@ def run_downloader():
     os.makedirs(TEMP_DIR, exist_ok=True)
     archive = load_archive()
     
-    if not X_PROFILES and not X_BACKUP_PROFILES:
-        return None
-
-    # Step 1: Scan Primary Profiles
-    print(">>> Scanning Primary Profiles...")
-    best_video = _find_best_video(X_PROFILES, archive)
+    all_profiles = X_PROFILES + X_BACKUP_PROFILES
+    best_video = None
     
-    # Step 2: Scan Backup Profiles if no video found in primary
+    print(">>> Beginning Sequential Profile Scan...")
+    for profile in all_profiles:
+        print(f"--- Checking Profile: {profile} ---")
+        best_video = _find_best_video([profile], archive)
+        if best_video:
+            print(f"✅ Found valid video in {profile}. Stopping scan.")
+            break
+        else:
+            print(f"❌ No valid videos found in {profile} (within last 4 hours). Moving to next...")
+            
     if not best_video:
-        print(">>> No new valid videos found in Primary Profiles. Scanning Backup Profiles...")
-        best_video = _find_best_video(X_BACKUP_PROFILES, archive)
-        
-    if not best_video:
-        print("No new videos found in either Primary or Backup profiles within the last 4 hours.")
+        print("No new videos found in any of the provided profiles within the last 4 hours.")
         return None
         
     # Proceed to download the single best video
