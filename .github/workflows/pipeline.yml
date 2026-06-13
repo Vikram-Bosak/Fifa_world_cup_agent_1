@@ -2,11 +2,6 @@ name: FIFA World Cup Video Pipeline
 
 on:
   workflow_dispatch:
-    inputs:
-      video_source_url:
-        description: 'URL or ytsearch query to download'
-        required: false
-        default: 'RANDOM_YOUTUBE_SEARCH'
   schedule:
     # Schedule configured for 5 times a day (US EST / EDT) targeting US audience peaks
     - cron: '0 14 * * *' # 9:00 AM EST (14:00 UTC)
