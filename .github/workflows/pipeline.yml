@@ -24,7 +24,9 @@ jobs:
       FB_ACCESS_TOKEN: ${{ secrets.FB_ACCESS_TOKEN }}
       FB_PAGE_ID: ${{ secrets.FB_PAGE_ID }}
       YOUTUBE_TOKEN_JSON: ${{ secrets.YOUTUBE_TOKEN_JSON }}
-      VIDEO_SOURCE_URL: ${{ github.event.inputs.video_source_url || 'RANDOM_YOUTUBE_SEARCH' }}
+      NVIDIA_API_KEY: ${{ secrets.NVIDIA_API_KEY }}
+      X_PROFILES: ${{ secrets.X_PROFILES }}
+      X_BACKUP_PROFILES: ${{ secrets.X_BACKUP_PROFILES }}
 
     steps:
       - name: Checkout Repository
