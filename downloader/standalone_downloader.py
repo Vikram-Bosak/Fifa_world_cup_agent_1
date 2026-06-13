@@ -82,7 +82,7 @@ def run_downloader():
         best_video = _find_best_video(X_BACKUP_PROFILES, archive)
         
     if not best_video:
-        print("No new videos found in either Primary or Backup profiles within the last 2 hours.")
+        print("No new videos found in either Primary or Backup profiles within the last 4 hours.")
         return None
         
     # Proceed to download the single best video
