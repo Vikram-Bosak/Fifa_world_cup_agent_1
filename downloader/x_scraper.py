@@ -57,7 +57,6 @@ async def extract_latest_video_tweets(profile_urls: List[str], max_per_profile: 
                     # Extract ID from URL (e.g. https://x.com/FIFAWorldCup/status/123456789)
                     tweet_id = tweet_url.split("/status/")[1].split("/")[0] if "/status/" in tweet_url else None
                     
-                    # Check the exact datetime to ensure it's within the last 2 hours
                     time_elem = await article.query_selector("time")
                     parsed_datetime = None
                     if time_elem:
@@ -75,7 +74,10 @@ async def extract_latest_video_tweets(profile_urls: List[str], max_per_profile: 
                                 parsed_datetime = tweet_time
                             except Exception as e:
                                 print(f"Error parsing date {dt_str}: {e}")
-                                continue
+                                
+                    if not parsed_datetime:
+                        print(f"Could not parse <time> for tweet {tweet_id}. Assuming it is NEW (current time) for prioritization.")
+                        parsed_datetime = datetime.now(timezone.utc)
                     
                     # Check if it has a video
                     has_video = "<video" in html or "playback" in html
