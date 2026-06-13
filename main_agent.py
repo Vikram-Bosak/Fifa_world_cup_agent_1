@@ -13,6 +13,7 @@ from uploader.uploader import run_upload_pipeline
 from common.limits import can_download, can_edit, can_upload, increment_edit
 from common.telegram import report_final_summary
 
+
 def is_us_peak_time():
     utc_now = datetime.now(timezone.utc)
     est_time = utc_now - timedelta(hours=5)
@@ -30,21 +31,17 @@ def run_sequential_pipeline():
     print("Starting Sequential Pipeline Monitor...")
     
     while True:
-        # Check upload limit first
-        if not can_upload():
+        # Wait an hour if limits reached
+        if not can_download() or not can_upload():
             print("Daily upload limit reached (5/5). Sleeping for 1 hour...")
             time.sleep(3600)
             continue
-            
         if not is_us_peak_time():
             print("Not currently US peak time. Waiting for 10 minutes...")
             time.sleep(600)
             continue
             
-        # If it IS peak time and we can upload, add human-like random delay
-        delay_minutes = random.randint(1, 15)
-        print(f"US Peak Time active! Sleeping for {delay_minutes} minutes to simulate human behavior...")
-        time.sleep(delay_minutes * 60)
+        run_single_sequence()
         
 from common.telegram import report_final_summary, report_download_start, report_download_complete, report_edit_start, report_edit_complete, send_message
 
@@ -70,12 +67,11 @@ def run_single_sequence():
     edited_path = f"temp/edited_{task_id}.mp4"
     try:
         print(f"Editing Video {task_id}...")
-        edited_file_id, hook_line = process_video_dynamically(raw_path, 'assets/custom_logo.png', edited_path, task=video_data)
+        edited_path, hook_line = process_video_dynamically(raw_path, 'assets/custom_logo.png', edited_path, task=video_data)
         increment_edit()
-        video_data['edited_file_id'] = edited_file_id
+        video_data['edited_path'] = edited_path
         video_data['hook_line'] = hook_line
         video_data['edit_time'] = datetime.utcnow().strftime('%Y-%m-%d %H:%M UTC')
-        report_edit_complete()
     except Exception as e:
         print(f"Editing failed: {e}")
         send_message(f"❌ <b>Editing Failed for {task_id}:</b>\n{e}")
@@ -83,27 +79,24 @@ def run_single_sequence():
         return False
         
     # 3. Upload
-    send_message(f"🚀 <b>Uploading Started for {task_id}</b>")
+    if "--test" not in sys.argv:
+        delay_minutes = random.randint(1, 15)
+        print(f"Applying Human Delay! Sleeping for {delay_minutes} minutes before Upload...")
+        time.sleep(delay_minutes * 60)
+    else:
+        print("Test mode active: Skipping human delay before Upload...")
+    
     try:
-        print(f"Uploading Video {task_id}...")
-        fb_url, yt_url, job_status, fb_err, yt_err = run_upload_pipeline(edited_path, task_id)
-        
-        video_data['fb_url'] = fb_url
-        video_data['yt_url'] = yt_url
-        video_data['fb_err'] = fb_err
-        video_data['yt_err'] = yt_err
-        video_data['upload_time'] = datetime.utcnow().strftime('%Y-%m-%d %H:%M UTC')
-        video_data['job_status'] = job_status
-        video_data['original_file'] = f"raw_video_{video_data['tweet_id']}.mp4"
-        
-        # Send Report
-        report_final_summary(video_data)
-        
+        print(f"Starting Upload Process for {task_id}...")
+        run_upload_pipeline(edited_path, task_id)
     except Exception as e:
-        print(f"Uploading failed: {e}")
-        send_message(f"❌ <b>Uploading Process Crashed for {task_id}:</b>\n{e}")
-        
+        print(f"Upload failed: {e}")
+        send_message(f"❌ <b>Upload Failed for {task_id}:</b>\n{e}")
+        cleanup_temp()
+        return False
+    
     # 4. Cleanup
+    print("Upload complete. Cleaning up temporary files...")
     cleanup_temp()
     return True
 
@@ -115,14 +108,6 @@ def run_action_mode():
         print("Daily upload limit reached (5/5). Exiting...")
         return
         
-    delay_minutes = random.randint(1, 15)
-    print(f"Adding human-like random delay of {delay_minutes} minutes before starting...")
-    time.sleep(delay_minutes * 60)
-    
-    # Double check limit after waking up just in case
-    if not can_upload():
-        return
-        
     run_single_sequence()
     print("Pipeline run completed. Exiting.")
 
@@ -131,5 +116,8 @@ if __name__ == "__main__":
     if "--test" in sys.argv:
         print("Running in TEST MODE. Bypassing delays for a single run...")
         run_single_sequence()
+    elif "--production" in sys.argv:
+        print("Running in PRODUCTION MODE. Starting continuous loop...")
+        run_sequential_pipeline()
     else:
         run_action_mode()

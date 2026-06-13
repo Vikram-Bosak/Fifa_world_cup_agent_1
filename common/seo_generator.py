@@ -1,8 +1,16 @@
 import os
 import json
-import random
+import time
 from openai import OpenAI
 from dotenv import load_dotenv
+
+# Try to import Google GenAI
+try:
+    from google import genai
+    from google.genai import types
+    HAS_GEMINI = True
+except ImportError:
+    HAS_GEMINI = False
 
 load_dotenv()
 
@@ -15,6 +23,42 @@ def _get_client():
         api_key=api_key
     )
 
+def _extract_gemini_video_context(video_path: str) -> str:
+    gemini_key = os.getenv("GEMINI_API_KEY")
+    if not HAS_GEMINI or not gemini_key or not video_path or not os.path.exists(video_path):
+        return ""
+        
+    print(f"Deep Video Analysis: Uploading {video_path} to Gemini 1.5 Flash...")
+    try:
+        client = genai.Client(api_key=gemini_key)
+        video_file = client.files.upload(file=video_path)
+        
+        # Wait for video processing
+        while video_file.state.name == "PROCESSING":
+            print("Waiting for video processing...")
+            time.sleep(5)
+            video_file = client.files.get(name=video_file.name)
+            
+        if video_file.state.name == "FAILED":
+            print("Gemini Video processing failed.")
+            return ""
+            
+        prompt = "Analyze this video completely. 1) Describe exactly what is happening visually. 2) If it is a meme, edit, or specific historical event (e.g., a war edit masked as a football video), explicitly state what the true hidden subject is. 3) Read any on-screen text (OCR). 4) Transcribe any spoken words. Be extremely accurate."
+        
+        response = client.models.generate_content(
+            model='gemini-2.5-flash',
+            contents=[video_file, prompt]
+        )
+        
+        # Cleanup file from Gemini servers
+        client.files.delete(name=video_file.name)
+        
+        print("Gemini Context Extraction Successful.")
+        return response.text
+    except Exception as e:
+        print(f"Error extracting deep video context: {e}")
+        return ""
+
 def analyze_video_for_editing(context: dict) -> dict:
     """
     Stage 1: Analyzes video context and generates Hook Line, Short Headline, Overlay Text, and Category.
@@ -23,7 +67,7 @@ def analyze_video_for_editing(context: dict) -> dict:
     
     fallback = {
         "category": "Highlight",
-        "hook_line": "INCREDIBLE MOMENT!",
+        "hook_line": "Did you notice this historic moment?",
         "short_headline": "MUST WATCH",
         "overlay_text": "EPIC FOOTBALL SKILLS"
     }
@@ -32,19 +76,30 @@ def analyze_video_for_editing(context: dict) -> dict:
         print("Warning: NVIDIA_API_KEY not found. Using fallback analysis.")
         return fallback
         
+    # Check if we should extract deep context via Gemini
+    deep_context = ""
+    local_path = context.get('local_path')
+    if local_path and os.getenv("GEMINI_API_KEY"):
+        deep_context = _extract_gemini_video_context(local_path)
+        if deep_context:
+            context['deep_context'] = deep_context # Save for stage 2
+            
     prompt = f"""
-    You are an expert sports video editor. Analyze the following video information:
-    Title/Text: {context.get('title', 'Unknown')}
+    You are an expert sports video editor and analyst. Your ONLY source of truth is the following original text from the downloaded video:
+    Original Title/Text: {context.get('title', 'Unknown')}
     Source Profile: {context.get('source', 'Unknown')}
-    Source URL: {context.get('source_url', 'Unknown')}
     
-    Based on this, generate the following details for the video overlay:
-    - "category": The video category (e.g., Goal Highlight, Celebration, Transfer News, Interview).
-    - "hook_line": A single, extremely catchy, short headline (1 to 4 words max) including 1-2 relevant emojis like "MESSI MAGIC! 🐐🔥".
-    - "short_headline": A brief contextual headline (2-5 words).
-    - "overlay_text": A descriptive text for the bottom banner (2-5 words) including 1 relevant emoji like "INCREDIBLE FREE KICK ⚽".
+    INSTRUCTIONS:
+    1. First, deeply analyze the "Original Title/Text". Understand the actual context, subject, and any hidden meaning (e.g., if it's a political edit, a war reference, a meme, or a specific player's moment).
+    2. Do NOT generate generic football text. If the original text mentions something specific like an attack, a joke, or a specific event, your output MUST reflect that exact topic.
+    3. Generate a "hook_line" (Overlay Text for the video). This must be highly engaging, in American English, and strictly based on the real context you analyzed.
+    4. Generate a "category" based on the real context.
     
-    Return strictly ONLY a valid JSON object without any markdown wrapping or extra text.
+    Return strictly ONLY a valid JSON object:
+    - "category": The accurate video category.
+    - "hook_line": The engaging hook line based ONLY on the original context (5-12 words max).
+    - "short_headline": Not used, leave empty.
+    - "overlay_text": Not used, leave empty.
     """
     
     try:
@@ -53,6 +108,7 @@ def analyze_video_for_editing(context: dict) -> dict:
             messages=[{"role": "user", "content": prompt}],
             temperature=0.7,
             max_tokens=500,
+            timeout=20,
         )
         content = completion.choices[0].message.content.strip()
         if content.startswith("```json"): content = content[7:]
@@ -80,21 +136,22 @@ def generate_upload_metadata(context: dict) -> dict:
         return _get_fallback_metadata()
         
     prompt = f"""
-    You are an expert sports social media manager. I am uploading a viral FIFA World Cup highlight reel.
-    Here is the video information and editing analysis:
+    You are an expert social media manager. Your task is to generate SEO metadata based STRICTLY on the original text context of the video.
+    
+    ORIGINAL CONTEXT:
     Original Title/Text: {context.get('title', 'Unknown')}
     Source Profile: {context.get('source', 'Unknown')}
-    Category: {context.get('category', 'Highlight')}
-    Hook Line Used: {context.get('hook_line', '')}
-    Overlay Text Used: {context.get('overlay_text', '')}
+    Determined Category: {context.get('category', 'Highlight')}
+    Hook Line Used in Video: {context.get('hook_line', '')}
     
-    Please generate the following details and return ONLY a valid JSON object without any markdown wrapping.
-    The JSON must contain these exact keys:
-    - "title": A catchy, viral SEO title (under 60 characters).
-    - "description": An engaging, SEO-optimized YouTube Shorts description (3-4 sentences) targeting US audience.
-    - "facebook_caption": A short, punchy caption for Facebook Reels with a call to action.
-    - "hashtags": A string of 5-7 viral hashtags (e.g., "#FIFA #Soccer #Viral"). Include the category if applicable.
-    - "tags": A list of 5-8 SEO tags (strings) for YouTube.
+    CRITICAL INSTRUCTION: Analyze the Original Title/Text. What is it really about? Is it a meme? Is it about a specific historical event or conflict? You MUST generate the SEO Title, Description, and Hashtags to reflect this REAL context perfectly. Do NOT write generic soccer highlight text if the original text points to something else entirely.
+    
+    Generate the following details and return ONLY a valid JSON object:
+    - "title": A catchy, viral SEO title (under 60 characters) accurately reflecting the REAL original text context.
+    - "description": An engaging YouTube Shorts description targeting US audience, summarizing the actual subject matter derived from the original text.
+    - "facebook_caption": A short, punchy caption for Facebook Reels with a call to action based on the true context.
+    - "hashtags": A string of 5-7 highly relevant viral hashtags based on the true context (e.g., "#Viral #Meme").
+    - "tags": A list of 5-8 SEO tags (strings) for YouTube based on the real content.
     """
     
     try:

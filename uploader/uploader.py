@@ -145,11 +145,7 @@ def run_upload_pipeline(video_path: str, task_id: str = "default"):
         print("Daily upload limit (5) reached. Aborting.")
         return
         
-    if not is_us_upload_time():
-        print("Not US upload time (8 AM - 10 PM EST). Aborting.")
-        # For testing purposes, we can bypass this if needed
-        # return
-        print("Bypassing US time check for Testing...")
+    start_time = datetime.now(timezone.utc)
         
     print(f"Starting Upload Process for {video_path}")
     
@@ -203,7 +199,44 @@ def run_upload_pipeline(video_path: str, task_id: str = "default"):
     if fb_url != "Failed" or yt_url != "Failed":
         increment_upload()
         
-    job_status = 'SUCCESS' if (fb_url != 'Failed' or yt_url != 'Failed') else 'FAILED'
+    end_time = datetime.now(timezone.utc)
+    duration_secs = (end_time - start_time).total_seconds()
+    
+    # Send Final Telegram Report
+    file_name = os.path.basename(video_path)
+    
+    # Get GitHub Actions context if available
+    github_repo = os.getenv("GITHUB_REPOSITORY", "Vikram-Bosak/Fifa_world_cup_agent_1")
+    github_run_id = os.getenv("GITHUB_RUN_ID", "local-run")
+    repo_url = f"https://github.com/{github_repo}"
+    run_url = f"{repo_url}/actions/runs/{github_run_id}" if github_run_id != "local-run" else "Local execution"
+    
+    fb_status = "Success" if fb_url != "Failed" else "Failed"
+    yt_status = "Success" if yt_url != "Failed" else "Failed"
+    
+    report_msg = (
+        f"✅ Pipeline Run Completed\n\n"
+        f"🎬 Video Name:\n"
+        f"{title}\n\n"
+        f"📤 Facebook Upload Status: {fb_status}\n"
+        f"📤 YouTube Upload Status: {yt_status}\n\n"
+        f"🏷️ SEO Title:\n"
+        f"{title}\n\n"
+        f"📝 Description:\n"
+        f"{yt_desc}\n\n"
+        f"Original File: {file_name}\n\n"
+        f"🔗 Facebook Reel URL:\n"
+        f"{fb_url}\n\n"
+        f"▶️ YouTube Video URL:\n"
+        f"{yt_url}\n\n"
+        f"📦 GitHub Repository:\n"
+        f"{repo_url}\n\n"
+        f"📄 Workflow Run:\n"
+        f"{run_url}"
+    )
+    
+    send_message(report_msg)
+    
     return fb_url, yt_url, job_status, fb_err, yt_err
 
 if __name__ == "__main__":
