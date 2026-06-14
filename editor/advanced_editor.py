@@ -29,8 +29,8 @@ def edit_3_4_custom_layout_template(input_path: str, logo_path: str, output_path
     # 1080x1440 Canvas. Video takes top 1080x1050, leaving a 390px black box at the bottom.
     # We apply the original zoom, flip, speed, and color grading effects.
     filter_complex = (
-        "color=c=black:s=1080x1440[bg];"
-        "[0:v]hflip,setpts=PTS/1.05,scale=1080:1050:force_original_aspect_ratio=increase,crop=1080:1050,colorbalance=rs=0.2:gs=0.2:rm=0.2:gm=0.2,eq=contrast=1.2:brightness=0.05:saturation=1.6:gamma=1.05,unsharp=5:5:1.0,vignette=PI/4[vid_processed];"
+        "color=c=#FFD700:s=1080x1440[bg];"
+        "[0:v]hflip,setpts=PTS/1.05,scale=1080:1050:force_original_aspect_ratio=increase,crop=1080:1050,eq=contrast=1.05:brightness=0.02:saturation=1.15:gamma=1.0,unsharp=5:5:0.5[vid_processed];"
         "[bg][vid_processed]overlay=0:0[with_vid];"
         "[1:v]scale=150:-1[logo];"
         "[with_vid][logo]overlay=(W-w)/2:40[with_logo]"
@@ -53,9 +53,9 @@ def edit_3_4_custom_layout_template(input_path: str, logo_path: str, output_path
         
     # Apply reference image border: Thick yellow outer, thin black middle, thin yellow inner
     filter_complex += (
-        ";[outv_temp]drawbox=x=0:y=0:w=1080:h=1440:color=yellow:thickness=15[border1];"
-        "[border1]drawbox=x=15:y=15:w=1050:h=1410:color=black:thickness=4[border2];"
-        "[border2]drawbox=x=19:y=19:w=1042:h=1402:color=yellow:thickness=3[outv]"
+        ";[outv_temp]drawbox=x=0:y=0:w=1080:h=1440:color=yellow:thickness=5[border1];"
+        "[border1]drawbox=x=5:y=5:w=1070:h=1430:color=black:thickness=4[border2];"
+        "[border2]drawbox=x=9:y=9:w=1062:h=1422:color=yellow:thickness=3[outv]"
     )
     
     has_audio = False
