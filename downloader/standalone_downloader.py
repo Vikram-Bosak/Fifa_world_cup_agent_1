@@ -38,11 +38,13 @@ def run_downloader():
     print(f"Found pending video in queue! ID: {tweet_id} at {tweet_url}")
     output_path = os.path.join(TEMP_DIR, f"{tweet_id}.mp4")
         
-    # Download using yt-dlp
+    # Download using yt-dlp (First 60 seconds only to avoid long downloads)
     cmd = [
         sys.executable, "-m", "yt_dlp",
         "-o", output_path,
         "--merge-output-format", "mp4",
+        "--match-filter", "duration <= 180",
+        "--download-sections", "*00:00:00-00:01:00",
         tweet_url
     ]
     

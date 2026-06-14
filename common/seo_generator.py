@@ -85,30 +85,34 @@ def analyze_video_for_editing(context: dict) -> dict:
             context['deep_context'] = deep_context # Save for stage 2
             
     prompt = f"""
-    You are an expert sports video editor and analyst. Your ONLY source of truth is the following original text from the downloaded video:
+    You are an expert sports video editor and social media growth hacker for a USA audience. Your ONLY source of truth is the following original text from the downloaded video:
     Original Title/Text: {context.get('title', 'Unknown')}
     Source Profile: {context.get('source', 'Unknown')}
     
     INSTRUCTIONS:
-    1. First, deeply analyze the "Original Title/Text". Understand the actual context, subject, and any hidden meaning (e.g., if it's a political edit, a war reference, a meme, or a specific player's moment).
-    2. Do NOT generate generic football text. If the original text mentions something specific like an attack, a joke, or a specific event, your output MUST reflect that exact topic.
-    3. Generate a "hook_line" (Overlay Text for the video). This must be highly engaging, in American English, and strictly based on the real context you analyzed.
-    4. Generate a "category" based on the real context.
+    1. First, deeply analyze the "Original Title/Text". Understand the actual context, subject, and any hidden meaning.
+    2. Generate a "hook_line" (Overlay Text for the video). This must be written strictly in ENGLISH.
+    3. The text MUST be structured as a 1 or 2 line story/hook designed to create intense curiosity:
+       - Line 1: Attention-Grabbing Hook + Emoji (e.g., "🔥 The secret behind his 38-year marriage...")
+       - Line 2: Curiosity or Suspense + Emoji (e.g., "😲 You won't believe what he said!")
+    4. Keep it short, punchy, and highly clickable. Ban generic, boring phrases like "MUST WATCH".
+    5. You MUST include relevant emojis in each line. Use newline character '\\n' to separate the lines.
+    6. Generate a "category" based on the real context.
     
     Return strictly ONLY a valid JSON object:
     - "category": The accurate video category.
-    - "hook_line": The engaging hook line based ONLY on the original context (5-12 words max).
+    - "hook_line": The English story hook WITH emojis and newline '\\n' (max 2 lines).
     - "short_headline": Not used, leave empty.
     - "overlay_text": Not used, leave empty.
     """
     
     try:
         completion = client.chat.completions.create(
-            model="nvidia/nemotron-3-ultra-550b-a55b",
+            model="meta/llama-3.1-70b-instruct",
             messages=[{"role": "user", "content": prompt}],
             temperature=0.7,
             max_tokens=500,
-            timeout=20,
+            timeout=45,
         )
         content = completion.choices[0].message.content.strip()
         if content.startswith("```json"): content = content[7:]

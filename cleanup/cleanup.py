@@ -49,6 +49,9 @@ def cleanup_and_report():
     if os.path.exists(temp_dir):
         print(f"Cleaning up {temp_dir} directory...")
         for item in os.listdir(temp_dir):
+            if item == "queue.json":
+                print("Skipping queue.json to preserve queue state.")
+                continue
             item_path = os.path.join(temp_dir, item)
             try:
                 if os.path.isfile(item_path) or os.path.islink(item_path):

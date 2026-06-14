@@ -19,6 +19,20 @@ X_PROFILES = [url.strip() for url in X_PROFILES_ENV.split(",") if url.strip()]
 X_BACKUP_PROFILES_ENV = os.getenv("X_BACKUP_PROFILES", "")
 X_BACKUP_PROFILES = [url.strip() for url in X_BACKUP_PROFILES_ENV.split(",") if url.strip()]
 
+def check_video_metadata(url: str):
+    import subprocess
+    import json
+    try:
+        print(f"Checking metadata for {url}...")
+        cmd = [sys.executable, "-m", "yt_dlp", "--dump-json", url]
+        result = subprocess.run(cmd, capture_output=True, text=True, check=True)
+        info = json.loads(result.stdout)
+        timestamp = info.get("timestamp")
+        return timestamp
+    except Exception as e:
+        print(f"Failed to check metadata: {e}")
+        return None
+
 def run_scanner():
     print("Starting Twitter Scanner Agent...")
     
@@ -29,8 +43,8 @@ def run_scanner():
         
     print(f"Scanning {len(all_profiles)} profiles for new short videos...")
     
-    # Get up to 3 latest videos from each profile
-    recent_videos = get_latest_video_tweets(all_profiles, max_per_profile=3)
+    # Get up to 10 latest videos from each profile to avoid missing them due to pinned tweets
+    recent_videos = get_latest_video_tweets(all_profiles, max_per_profile=10)
     
     new_videos_added = 0
     
@@ -42,6 +56,23 @@ def run_scanner():
         # Check if already in queue or processed (legacy archive or new queue)
         if is_duplicate(tweet_id):
             print(f"Video {tweet_id} from {profile_url} is already in the queue or processed. Skipping.")
+            continue
+            
+        # Fetch real age
+        real_timestamp = check_video_metadata(tweet_url)
+        
+        if not real_timestamp:
+            print(f"Video {tweet_id}: Could not verify the exact post time. Rejecting to enforce strict time rules.")
+            continue
+            
+        from datetime import timedelta
+        tweet_time = datetime.fromtimestamp(real_timestamp, tz=timezone.utc)
+        now_utc = datetime.now(timezone.utc)
+        
+        # Calculate time difference
+        time_diff = now_utc - tweet_time
+        if time_diff > timedelta(hours=2):
+            print(f"Video {tweet_id} is strictly older than 2 hours (Age: {time_diff}). Skipping old video.")
             continue
             
         # Parse timestamp

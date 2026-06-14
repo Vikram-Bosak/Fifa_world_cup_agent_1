@@ -2,6 +2,7 @@ import os
 import sys
 import subprocess
 import json
+import textwrap
 from dotenv import load_dotenv
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -21,98 +22,41 @@ def get_video_dimensions(file_path):
         print(f"Error getting video dimensions: {e}")
         return 1920, 1080 # fallback to horizontal
 
-def edit_long_video_template(input_path: str, logo_path: str, output_path: str, hook_line: str = "CRAZIEST FIFA MOMENT!", overlay_text: str = "", source_credit: str = "", bgm_path: str = None):
-    print("Applying Long Video (Horizontal) Template...")
+def edit_3_4_custom_layout_template(input_path: str, logo_path: str, output_path: str, hook_line: str = "VIRAL NEWS!", source_credit: str = ""):
+    print("Applying Custom 3:4 Layout Template (Border & Black Box)...")
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
     
-    # Escape single quotes in the hook line for FFmpeg
-    safe_hook = hook_line.replace("'", "\\'")
-    safe_overlay = overlay_text.replace("'", "\\'") if overlay_text else ""
-    
+    # 1080x1440 Canvas. Video takes top 1080x1050, leaving a 390px black box at the bottom.
+    # We apply the original zoom, flip, speed, and color grading effects.
     filter_complex = (
-        "[0:v]hflip,setpts=PTS/1.05,scale=1188:1584:force_original_aspect_ratio=increase,crop=1080:1440,boxblur=luma_radius=min(h\\,w)/20:luma_power=1:chroma_radius=min(cw\\,ch)/20:chroma_power=1,colorchannelmixer=rr=0.7:gg=0.7:bb=0.7[bg];"
-        "[0:v]hflip,setpts=PTS/1.05,scale=1188:1584:force_original_aspect_ratio=decrease[fg_zoomed];"
-        "[fg_zoomed]crop=min(iw\\,1080):min(ih\\,1440)[fg];"
-        "[1:v]scale=200:-1[logo];"
-        "[bg][fg]overlay=(W-w)/2:(H-h)/2[merged];"
-        "[merged][logo]overlay=W-w-30:30[with_logo];"
-        f"[with_logo]drawtext=text='{safe_hook}':fontcolor=yellow:fontfile='/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf':fontsize=70:x=(w-text_w)/2:y=h-250:box=1:boxcolor=black@0.8:boxborderw=15[with_hook]"
-    )
-    
-    if source_credit:
-        safe_credit = source_credit.replace("'", "\\'").replace(":", "\\:")
-        filter_complex += f";[with_hook]drawtext=text='Credit\\: {safe_credit}':fontcolor=white@0.8:fontfile='/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf':fontsize=40:x=w-text_w-20:y=20:box=1:boxcolor=black@0.6:boxborderw=10[outv_temp]"
-    else:
-        filter_complex = filter_complex.replace("[with_hook]", "[outv_temp]")
-        
-    filter_complex += ";[outv_temp]drawbox=x=0:y=0:w=iw:h=ih:color=yellow:thickness=20[outv]"
-    
-    has_audio = False
-    try:
-        out = subprocess.check_output(["ffprobe", "-i", input_path, "-show_streams", "-select_streams", "a", "-loglevel", "error"]).decode()
-        if out.strip(): has_audio = True
-    except: pass
-
-
-    duration = None
-    try:
-        duration_str = subprocess.check_output(
-            ["ffprobe", "-v", "error", "-show_entries", "format=duration", "-of", "default=noprint_wrappers=1:nokey=1", input_path]
-        ).decode().strip()
-        if duration_str: duration = float(duration_str)
-    except:
-        pass
-
-    cmd = ["ffmpeg", "-y", "-i", input_path, "-i", logo_path]
-
-    
-    if bgm_path and os.path.exists(bgm_path):
-        cmd.extend(["-stream_loop", "-1", "-i", bgm_path])
-        if has_audio:
-            filter_complex += ";[0:a]asetrate=53878,aresample=48000,atempo=0.9354,volume=0.2[a0];[2:a]asetrate=53878,aresample=48000,atempo=0.9354,volume=0.8[a1];[a0][a1]amix=inputs=2:duration=first:normalize=0[outa]"
-            cmd.extend(["-filter_complex", filter_complex, "-map", "[outv]", "-map", "[outa]"])
-        else:
-            filter_complex += ";[2:a]asetrate=53878,aresample=48000,atempo=0.9354,volume=0.8[outa]"
-            cmd.extend(["-filter_complex", filter_complex, "-map", "[outv]", "-map", "[outa]", "-shortest"])
-    else:
-        cmd.extend(["-filter_complex", filter_complex, "-map", "[outv]"])
-        if has_audio:
-            cmd.extend(["-map", "0:a"])
-
-    cmd.extend([
-        "-c:v", "libx264", "-preset", "fast", "-crf", "23",
-        "-c:a", "aac", "-b:a", "128k",
-        "-t", "59",
-        output_path
-    ])
-    subprocess.run(cmd, check=True)
-    return "Long Video Template (News Style)"
-
-def edit_short_video_template(input_path: str, logo_path: str, output_path: str, hook_line: str = "EPIC FIFA MOMENT", overlay_text: str = "MUST WATCH", source_credit: str = "", bgm_path: str = None):
-    print("Applying Short Video (Vertical 3:4) Hollywood Style Template...")
-    os.makedirs(os.path.dirname(output_path), exist_ok=True)
-    
-    # Escape single quotes in the hook line for FFmpeg
-    safe_hook = hook_line.replace("'", "\\'")
-    safe_overlay = overlay_text.replace("'", "\\'")
-    
-    filter_complex = (
-        # Scale, crop, color grading (vibrant), focus effect (unsharp), and edge focus (vignette)
-        "[0:v]hflip,setpts=PTS/1.05,scale=1188:1584:force_original_aspect_ratio=increase,crop=1080:1440,colorbalance=rs=0.2:gs=0.2:rm=0.2:gm=0.2,eq=contrast=1.2:brightness=0.05:saturation=1.6:gamma=1.05,unsharp=5:5:1.0,vignette=PI/4[scaled];"
-        # Logo at top center
+        "color=c=black:s=1080x1440[bg];"
+        "[0:v]hflip,setpts=PTS/1.05,scale=1080:1050:force_original_aspect_ratio=increase,crop=1080:1050,colorbalance=rs=0.2:gs=0.2:rm=0.2:gm=0.2,eq=contrast=1.2:brightness=0.05:saturation=1.6:gamma=1.05,unsharp=5:5:1.0,vignette=PI/4[vid_processed];"
+        "[bg][vid_processed]overlay=0:0[with_vid];"
         "[1:v]scale=150:-1[logo];"
-        "[scaled][logo]overlay=(W-w)/2:40[with_logo];"
-        # Catchy Hindi Hook Line (Bottom Center)
-        f"[with_logo]drawtext=text='{safe_hook}':fontcolor=yellow:fontfile='/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf':fontsize=60:x=(w-text_w)/2:y=h-200:box=1:boxcolor=black:boxborderw=20[with_hook]"
+        "[with_vid][logo]overlay=(W-w)/2:40[with_logo]"
     )
     
+    from common.text_renderer import create_text_overlay
+    overlay_path = "temp/hook_overlay.png"
+    create_text_overlay(hook_line, overlay_path, max_width=1000, max_height=340)
+    
+    filter_complex += f";[2:v]scale=1000:340[hook_img];"
+    filter_complex += f"[with_logo][hook_img]overlay=40:1075[with_hook]"
+    
     if source_credit:
-        safe_credit = source_credit.replace("'", "\\'").replace(":", "\\:")
-        filter_complex += f";[with_hook]drawtext=text='Credit\\: {safe_credit}':fontcolor=white@0.8:fontfile='/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf':fontsize=35:x=w-text_w-30:y=30:box=1:boxcolor=black@0.6:boxborderw=10[outv_temp]"
+        credit_file = "temp/credit_line.txt"
+        with open(credit_file, "w", encoding="utf-8") as f:
+            f.write(f"Credit: {source_credit}")
+        filter_complex += f";[with_hook]drawtext=textfile='{credit_file}':fontcolor=white@0.8:fontfile='/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf':fontsize=35:x=w-text_w-30:y=1000:box=1:boxcolor=black@0.6:boxborderw=10[outv_temp]"
     else:
-        filter_complex = filter_complex.replace("[with_hook]", "[outv_temp]")
+        filter_complex += ";[with_hook]copy[outv_temp]"
         
-    filter_complex += ";[outv_temp]drawbox=x=0:y=0:w=iw:h=ih:color=yellow:thickness=20[outv]"
+    # Apply reference image border: Thick yellow outer, thin black middle, thin yellow inner
+    filter_complex += (
+        ";[outv_temp]drawbox=x=0:y=0:w=1080:h=1440:color=yellow:thickness=15[border1];"
+        "[border1]drawbox=x=15:y=15:w=1050:h=1410:color=black:thickness=4[border2];"
+        "[border2]drawbox=x=19:y=19:w=1042:h=1402:color=yellow:thickness=3[outv]"
+    )
     
     has_audio = False
     try:
@@ -120,31 +64,14 @@ def edit_short_video_template(input_path: str, logo_path: str, output_path: str,
         if out.strip(): has_audio = True
     except: pass
 
+    cmd = ["ffmpeg", "-y", "-i", input_path, "-i", logo_path, "-i", overlay_path]
 
-    duration = None
-    try:
-        duration_str = subprocess.check_output(
-            ["ffprobe", "-v", "error", "-show_entries", "format=duration", "-of", "default=noprint_wrappers=1:nokey=1", input_path]
-        ).decode().strip()
-        if duration_str: duration = float(duration_str)
-    except:
-        pass
-
-    cmd = ["ffmpeg", "-y", "-i", input_path, "-i", logo_path]
-
-    
-    if bgm_path and os.path.exists(bgm_path):
-        cmd.extend(["-stream_loop", "-1", "-i", bgm_path])
-        if has_audio:
-            filter_complex += ";[0:a]asetrate=53878,aresample=48000,atempo=0.9354,volume=0.2[a0];[2:a]asetrate=53878,aresample=48000,atempo=0.9354,volume=0.8[a1];[a0][a1]amix=inputs=2:duration=first:normalize=0[outa]"
-            cmd.extend(["-filter_complex", filter_complex, "-map", "[outv]", "-map", "[outa]"])
-        else:
-            filter_complex += ";[2:a]asetrate=53878,aresample=48000,atempo=0.9354,volume=0.8[outa]"
-            cmd.extend(["-filter_complex", filter_complex, "-map", "[outv]", "-map", "[outa]", "-shortest"])
+    # Audio volume boost logic (no BGM)
+    if has_audio:
+        filter_complex += ";[0:a]volume=1.5,loudnorm=I=-16:TP=-1.5:LRA=11[outa]"
+        cmd.extend(["-filter_complex", filter_complex, "-map", "[outv]", "-map", "[outa]"])
     else:
         cmd.extend(["-filter_complex", filter_complex, "-map", "[outv]"])
-        if has_audio:
-            cmd.extend(["-map", "0:a"])
 
     cmd.extend([
         "-c:v", "libx264", "-preset", "fast", "-crf", "23",
@@ -153,7 +80,7 @@ def edit_short_video_template(input_path: str, logo_path: str, output_path: str,
         output_path
     ])
     subprocess.run(cmd, check=True)
-    return "Short Video Template (Hollywood Reels Style)"
+    return "3:4 Custom Layout Template"
 
 def process_video_dynamically(input_path: str, logo_path: str, output_path: str, task: dict = None):
     from common.seo_generator import analyze_video_for_editing
@@ -171,30 +98,23 @@ def process_video_dynamically(input_path: str, logo_path: str, output_path: str,
     analysis = analyze_video_for_editing(task)
     print(f"Analysis Output: {json.dumps(analysis)}")
     
-    hook_line = analysis.get("hook_line", "EPIC FIFA MOMENT")
-    overlay_text = analysis.get("overlay_text", "MUST WATCH")
+    hook_line = analysis.get("hook_line", "VIRAL NEWS!")
     source_credit = task.get("source", "")
     
     # Save full analysis state for Uploader Phase
     os.makedirs("temp", exist_ok=True)
     task_id = task.get("id", "default")
     with open(f"temp/state_upload_{task_id}.json", "w") as f:
-        # Merge task data and analysis
         full_context = dict(task)
         full_context.update(analysis)
         json.dump(full_context, f, indent=4)
         
-    bgm_file = "assets/music/default_background_music.mp3"
-    if width > height:
-        template_used = edit_long_video_template(input_path, logo_path, output_path, hook_line, overlay_text, source_credit, bgm_path=bgm_file)
-    else:
-        template_used = edit_short_video_template(input_path, logo_path, output_path, hook_line, overlay_text, source_credit, bgm_path=bgm_file)
+    template_used = edit_3_4_custom_layout_template(input_path, logo_path, output_path, hook_line, source_credit)
         
     print("Video editing completed!")
     
     edit_complete_time = datetime.datetime.utcnow()
     file_name = os.path.basename(output_path)
-    template_name = "Long Horizontal" if width > height else "3:4 Short Vertical"
     
     message_text = (
         f"🎬 **EDITING REPORT**\n\n"
@@ -202,7 +122,7 @@ def process_video_dynamically(input_path: str, logo_path: str, output_path: str,
         f"**Edit Start Time:** {edit_start_time.strftime('%Y-%m-%d %H:%M UTC')}\n"
         f"**Edit Complete Time:** {edit_complete_time.strftime('%Y-%m-%d %H:%M UTC')}\n"
         f"**File Name:** {file_name}\n"
-        f"**Applied Template:** {template_name}\n"
+        f"**Applied Template:** {template_used}\n"
         f"**Editing Status:** SUCCESS"
     )
     
@@ -215,6 +135,5 @@ def process_video_dynamically(input_path: str, logo_path: str, output_path: str,
     return output_path, hook_line
 
 if __name__ == "__main__":
-    # Test on the horizontal video
     dummy_task = {"id": "test_123", "title": "Crazy test video", "source": "FIFA World Cup"}
     process_video_dynamically("assets/vertical_dummy.mp4", "assets/custom_logo.png", "temp/dynamic_edit.mp4", dummy_task)
