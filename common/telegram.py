@@ -54,6 +54,28 @@ def edit_message_text(message_id: int, new_text: str, chat_id: str = None) -> bo
         print(f"Failed to edit Telegram message text: {e}")
         return False
 
+def update_queue_message(video_data: dict) -> bool:
+    message_id = video_data.get("message_id")
+    if not message_id:
+        return False
+        
+    post_id = video_data.get("id", "Unknown")
+    profile_url = video_data.get("profile", "")
+    profile_name = profile_url.split('/')[-1] if '/' in profile_url else profile_url
+    tweet_url = video_data.get("source_url", "")
+    timestamp_str = video_data.get("timestamp", "")
+    status = video_data.get("status", "Unknown").capitalize()
+    
+    # Format Telegram Notification exactly as requested
+    message_text = (
+        f"<b>Unique ID:</b> {post_id}\n\n"
+        f"<b>Source Account:</b>\n@{profile_name}\n\n"
+        f"<b>Tweet URL:</b>\n{tweet_url}\n\n"
+        f"<b>Timestamp:</b>\n{timestamp_str} UTC\n\n"
+        f"<b>Status:</b> {status}"
+    )
+    return edit_message_text(message_id, message_text)
+
 def send_video(video_path: str, caption: str = "", chat_id: str = None):
     target_chat = chat_id or TELEGRAM_CHAT_ID
     if not TELEGRAM_BOT_TOKEN or not target_chat:
