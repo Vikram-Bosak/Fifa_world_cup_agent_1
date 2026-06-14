@@ -41,11 +41,6 @@ jobs:
           pip install -r requirements.txt
           playwright install chromium
 
-      - name: Install System Dependencies (FFmpeg & Fonts)
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y ffmpeg fonts-dejavu
-
       - name: Create Temp Directory
         run: mkdir -p temp
 
@@ -58,5 +53,4 @@ jobs:
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
           git add temp/queue.json || echo "No queue changes"
           git commit -m "Auto-update video queue from main pipeline" || echo "No changes to commit"
-          git pull --rebase origin main || true
           git push
