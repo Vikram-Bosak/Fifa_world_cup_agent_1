@@ -63,5 +63,15 @@
         "message_id": 168,
         "status": "pending",
         "added_at": "2026-06-14T13:36:39.183738"
+    },
+    {
+        "id": "20260614_135516_2066151213918499009",
+        "tweet_id": "2066151213918499009",
+        "source_url": "https://x.com/FIFAWorldCup/status/2066151213918499009",
+        "profile": "https://x.com/FIFAWorldCup",
+        "timestamp": "2026-06-14 01:54 PM",
+        "message_id": 245,
+        "status": "pending",
+        "added_at": "2026-06-14T13:55:16.789293"
     }
 ]
