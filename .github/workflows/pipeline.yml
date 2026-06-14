@@ -10,6 +10,9 @@ on:
     - cron: '0 1 * * *'  # 8:00 PM EST (01:00 UTC)
     - cron: '0 4 * * *'  # 11:00 PM EST (04:00 UTC)
 
+permissions:
+  contents: write
+
 jobs:
   process_video:
     runs-on: ubuntu-latest
