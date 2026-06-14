@@ -237,6 +237,7 @@ def run_upload_pipeline(video_path: str, task_id: str = "default"):
     
     send_message(report_msg)
     
+    job_status = "Success" if fb_status == "Success" or yt_status == "Success" else "Failed"
     return fb_url, yt_url, job_status, fb_err, yt_err
 
 if __name__ == "__main__":
