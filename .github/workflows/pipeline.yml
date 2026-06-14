@@ -41,6 +41,11 @@ jobs:
           pip install -r requirements.txt
           playwright install chromium
 
+      - name: Install System Dependencies (FFmpeg & Fonts)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg fonts-dejavu
+
       - name: Create Temp Directory
         run: mkdir -p temp
 
