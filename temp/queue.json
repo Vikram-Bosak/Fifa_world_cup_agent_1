@@ -113,5 +113,25 @@
         "message_id": 249,
         "status": "pending",
         "added_at": "2026-06-14T21:08:20.485509"
+    },
+    {
+        "id": "20260615_100102_2066438061055967499",
+        "tweet_id": "2066438061055967499",
+        "source_url": "https://x.com/FIFAWorldCup/status/2066438061055967499",
+        "profile": "https://x.com/FIFAWorldCup",
+        "timestamp": "2026-06-15 10:00 AM",
+        "message_id": 250,
+        "status": "pending",
+        "added_at": "2026-06-15T10:01:03.176614"
+    },
+    {
+        "id": "20260615_100104_2066431285665653179",
+        "tweet_id": "2066431285665653179",
+        "source_url": "https://x.com/FIFAWorldCup/status/2066431285665653179",
+        "profile": "https://x.com/FIFAWorldCup",
+        "timestamp": "2026-06-15 10:00 AM",
+        "message_id": 251,
+        "status": "pending",
+        "added_at": "2026-06-15T10:01:05.013200"
     }
 ]
