@@ -45,7 +45,12 @@ jobs:
         run: mkdir -p temp
 
       - name: Run Sequential Pipeline (Download -> Edit -> Upload)
-        run: python main_agent.py
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            python main_agent.py --force-upload
+          else
+            python main_agent.py
+          fi
 
       - name: Commit and Push Queue Updates
         run: |
