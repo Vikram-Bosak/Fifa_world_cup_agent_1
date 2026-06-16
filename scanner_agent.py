@@ -28,10 +28,11 @@ def check_video_metadata(url: str):
         result = subprocess.run(cmd, capture_output=True, text=True, check=True)
         info = json.loads(result.stdout)
         timestamp = info.get("timestamp")
-        return timestamp
+        title = info.get("title", "")
+        return timestamp, title
     except Exception as e:
         print(f"Failed to check metadata: {e}")
-        return None
+        return None, ""
 
 def run_scanner():
     print("Starting Twitter Scanner Agent...")
@@ -58,8 +59,8 @@ def run_scanner():
             print(f"Video {tweet_id} from {profile_url} is already in the queue or processed. Skipping.")
             continue
             
-        # Fetch real age
-        real_timestamp = check_video_metadata(tweet_url)
+        # Fetch real age and title
+        real_timestamp, real_title = check_video_metadata(tweet_url)
         
         if not real_timestamp:
             print(f"Video {tweet_id}: Could not verify the exact post time. Rejecting to enforce strict time rules.")
@@ -89,6 +90,7 @@ def run_scanner():
         message_text = (
             f"<b>Unique ID:</b> {post_id}\n\n"
             f"<b>Source Account:</b>\n@{profile_name}\n\n"
+            f"<b>Title/Description:</b>\n{real_title}\n\n"
             f"<b>Tweet URL:</b>\n{tweet_url}\n\n"
             f"<b>Timestamp:</b>\n{timestamp_str} UTC\n\n"
             f"<b>Status:</b> Pending"
@@ -106,6 +108,7 @@ def run_scanner():
             "source_url": tweet_url,
             "profile": profile_url,
             "timestamp": timestamp_str,
+            "title": real_title,
             "message_id": message_id
         }
         
