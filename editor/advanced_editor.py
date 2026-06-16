@@ -30,11 +30,11 @@ def edit_3_4_custom_layout_template(input_path: str, logo_path: str, output_path
     frame_path = "temp/ui_frame.png"
     generate_ui_frame(frame_path, source_credit, headline, story)
     
-    # 1080x1440 Canvas. Video takes 1080x940 at y=120.
+    # 1080x1440 Canvas. Video takes 1070x1000 at x=5, y=95.
     # We apply the original zoom, flip, speed, and color grading effects.
     filter_complex = (
-        "[0:v]hflip,setpts=PTS/1.05,scale=1080:940:force_original_aspect_ratio=increase,crop=1080:940,eq=contrast=1.05:brightness=0.02:saturation=1.15:gamma=1.0,unsharp=5:5:0.5[vid_processed];"
-        "[vid_processed]pad=1080:1440:0:120:color=black[bg];"
+        "[0:v]hflip,setpts=PTS/1.05,scale=1070:1000:force_original_aspect_ratio=increase,crop=1070:1000,eq=contrast=1.05:brightness=0.02:saturation=1.15:gamma=1.0,unsharp=5:5:0.5[vid_processed];"
+        "[vid_processed]pad=1080:1440:5:95:color=black[bg];"
         "[bg][1:v]overlay=0:0[outv]"
     )
     
