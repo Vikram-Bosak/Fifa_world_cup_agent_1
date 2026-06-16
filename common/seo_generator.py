@@ -67,8 +67,8 @@ def analyze_video_for_editing(context: dict) -> dict:
     
     fallback = {
         "category": "Highlight",
-        "hook_line": "Did you notice this historic moment?",
         "short_headline": "MUST WATCH",
+        "story": "Did you notice this historic moment?",
         "overlay_text": "EPIC FOOTBALL SKILLS"
     }
     
@@ -91,19 +91,15 @@ def analyze_video_for_editing(context: dict) -> dict:
     
     INSTRUCTIONS:
     1. First, deeply analyze the "Original Title/Text". Understand the actual context, subject, and any hidden meaning.
-    2. Generate a "hook_line" (Overlay Text for the video). This must be written strictly in ENGLISH.
-    3. The text MUST be structured as a 1 or 2 line story/hook designed to create intense curiosity:
-       - Line 1: Attention-Grabbing Hook + Emoji (e.g., "🔥 The secret behind his 38-year marriage...")
-       - Line 2: Curiosity or Suspense + Emoji (e.g., "😲 You won't believe what he said!")
-    4. Keep it short, punchy, and highly clickable. Ban generic, boring phrases like "MUST WATCH".
-    5. You MUST include relevant emojis in each line. Use newline character '\\n' to separate the lines.
-    6. Generate a "category" based on the real context.
+    2. Generate a "short_headline". This must be very short, impactful, and written strictly in ENGLISH. (e.g., "HISTORIC MOMENT! 🇪🇸"). Include 1 emoji.
+    3. Generate a "story". This is a short, 2-3 sentence paragraph explaining the context or building suspense, designed to make them watch the video. Include emojis. (e.g., "The national team arrives to a massive crowd! Can they go all the way? #España #Fifa").
+    4. Keep it highly clickable. Ban generic, boring phrases.
+    5. Generate a "category" based on the real context.
     
     Return strictly ONLY a valid JSON object:
     - "category": The accurate video category.
-    - "hook_line": The English story hook WITH emojis and newline '\\n' (max 2 lines).
-    - "short_headline": Not used, leave empty.
-    - "overlay_text": Not used, leave empty.
+    - "short_headline": The short, impactful headline.
+    - "story": The contextual 2-3 sentence paragraph with hashtags.
     """
     
     try:
@@ -146,7 +142,8 @@ def generate_upload_metadata(context: dict) -> dict:
     Original Title/Text: {context.get('title', 'Unknown')}
     Source Profile: {context.get('source', 'Unknown')}
     Determined Category: {context.get('category', 'Highlight')}
-    Hook Line Used in Video: {context.get('hook_line', '')}
+    Headline Used in Video: {context.get('short_headline', '')}
+    Story Used in Video: {context.get('story', '')}
     
     CRITICAL INSTRUCTION: Analyze the Original Title/Text. What is it really about? Is it a meme? Is it about a specific historical event or conflict? You MUST generate the SEO Title, Description, and Hashtags to reflect this REAL context perfectly. Do NOT write generic soccer highlight text if the original text points to something else entirely.
     
