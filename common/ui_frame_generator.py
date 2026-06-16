@@ -45,17 +45,69 @@ def generate_ui_frame(output_path: str, source_name: str, headline: str, story: 
     with Pilmoji(img) as pilmoji:
         start_y = height - bottom_bar_height + 25
         
-        # Headline
-        headline_text = headline.strip().upper() if headline else "HISTORIC MOMENT FOR FOOTBALL! ⚽"
-        pilmoji.text((30, start_y), headline_text, fill=white, font=f_head)
+        # MUST WATCH Headline
+        pilmoji.text((30, start_y), "MUST WATCH", fill=white, font=f_head)
+        start_y += 50
         
-        # Story (Wrapped)
-        start_y += 60
-        story_text = story if story else "The national team arrives to a massive crowd ahead of their crucial match! Can they go all the way? #Fifa #WorldCup"
-        story_lines = textwrap.wrap(story_text, width=65)
-        for line in story_lines:
+        # Sub-headline (Using the AI-generated headline)
+        try:
+            f_sub = ImageFont.truetype(font_reg, 35)
+        except IOError:
+            f_sub = ImageFont.load_default()
+            
+        headline_text = headline.strip() if headline else "Did you notice this historic moment?"
+        pilmoji.text((30, start_y), headline_text, fill=(200, 210, 240, 255), font=f_sub)
+        
+        start_y += 55
+        
+        # User Avatar and Name
+        avatar_y = start_y
+        avatar_size = 50
+        draw.ellipse([30, avatar_y, 30+avatar_size, avatar_y+avatar_size], fill=(30, 30, 30, 255))
+        
+        # Draw logo inside circle if exists
+        if os.path.exists(top_banner_path):
+            try:
+                logo_img = Image.open(top_banner_path).convert("RGBA")
+                # Crop a square from the left side of the banner (where the logo usually is)
+                logo_square = logo_img.crop((0, 0, logo_img.height, logo_img.height))
+                logo_resized = logo_square.resize((avatar_size, avatar_size), Image.LANCZOS)
+                
+                # Make circular mask
+                mask = Image.new('L', (avatar_size, avatar_size), 0)
+                mask_draw = ImageDraw.Draw(mask)
+                mask_draw.ellipse((0, 0, avatar_size, avatar_size), fill=255)
+                
+                img.paste(logo_resized, (30, avatar_y), mask)
+            except:
+                pass
+                
+        try:
+            f_user = ImageFont.truetype(font_bold, 25)
+        except IOError:
+            f_user = ImageFont.load_default()
+            
+        pilmoji.text((90, avatar_y + 10), "FIFA Insider USA ⚙️", fill=white, font=f_user)
+        
+        start_y += 70
+        
+        # Story
+        story_text = story if story else "History hides in the details. 👀 Did you spot this iconic World Cup moment? Drop a comment if you saw it! 🏆👇"
+        story_lines = textwrap.wrap(story_text, width=70)
+        
+        try:
+            f_story = ImageFont.truetype(font_reg, 26)
+            f_story_bold = ImageFont.truetype(font_bold, 26)
+        except IOError:
+            f_story = ImageFont.load_default()
+            f_story_bold = ImageFont.load_default()
+            
+        for line in story_lines[:2]: # Max 2 lines to fit space
             pilmoji.text((30, start_y), line, fill=white, font=f_story)
-            start_y += 45
+            start_y += 35
+            
+        # See more
+        pilmoji.text((30, start_y), "#... See more", fill=white, font=f_story_bold)
             
         # Separator Line
         sep_y = height - 100
