@@ -176,8 +176,14 @@
         "profile": "https://x.com/FIFAWorldCup",
         "timestamp": "2026-06-15 03:53 PM",
         "message_id": 254,
-        "status": "pending",
-        "added_at": "2026-06-15T15:53:54.139171"
+        "status": "uploaded",
+        "added_at": "2026-06-15T15:53:54.139171",
+        "title": "Twitter Video from FIFAWorldCup",
+        "download_time": "2026-06-16 16:57:24 UTC",
+        "local_path": "/home/runner/work/Fifa_world_cup_agent_1/Fifa_world_cup_agent_1/temp/2066522900203516175.mp4",
+        "edited_path": "temp/edited_20260615_155353_2066522900203516175.mp4",
+        "hook_line": "MUST WATCH",
+        "edit_time": "2026-06-16 16:58 UTC"
     },
     {
         "id": "20260615_194551_2066595617082671446",
