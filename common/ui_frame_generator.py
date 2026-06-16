@@ -45,18 +45,14 @@ def generate_ui_frame(output_path: str, source_name: str, headline: str, story: 
     with Pilmoji(img) as pilmoji:
         start_y = height - bottom_bar_height + 25
         
-        # MUST WATCH Headline
-        pilmoji.text((30, start_y), "MUST WATCH", fill=white, font=f_head)
-        start_y += 50
-        
-        # Sub-headline (Using the AI-generated headline)
+        # Main Headline
         try:
-            f_sub = ImageFont.truetype(font_reg, 35)
+            f_sub = ImageFont.truetype(font_bold, 35)
         except IOError:
             f_sub = ImageFont.load_default()
             
-        headline_text = headline.strip() if headline else "Did you notice this historic moment?"
-        pilmoji.text((30, start_y), headline_text, fill=(200, 210, 240, 255), font=f_sub)
+        headline_text = headline.strip() if headline else ""
+        pilmoji.text((30, start_y), headline_text, fill=white, font=f_sub)
         
         start_y += 55
         
