@@ -26,9 +26,9 @@ def run_daemon():
             
         print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] Pipeline run completed.")
         
-        # Sleep for 2 hours (7200 seconds)
-        print("Sleeping for 2 hours before the next run...")
-        time.sleep(7200)
+        # Sleep for 1 hour (3600 seconds)
+        print("Sleeping for 1 hour before the next run...")
+        time.sleep(3600)
 
 if __name__ == "__main__":
     run_daemon()
