@@ -5,101 +5,77 @@ from PIL import Image, ImageDraw, ImageFont
 from pilmoji import Pilmoji
 
 def generate_ui_frame(output_path: str, source_name: str, headline: str, story: str, width=1080, height=1440):
-    """
-    Generates a Facebook-style UI frame with transparent center for video placement.
-    """
-    # Create a fully transparent image
     img = Image.new('RGBA', (width, height), (0, 0, 0, 0))
     draw = ImageDraw.Draw(img)
     
     # Colors
     fb_blue = (59, 89, 152, 255)
     white = (255, 255, 255, 255)
-    light_blue = (139, 157, 195, 255)
     yellow = (255, 215, 0, 255)
-    black = (0, 0, 0, 255)
+    line_color = (255, 255, 255, 60)
     
-    # Layout dimensions
-    top_bar_height = 120
-    bottom_bar_height = 380
-    
-    # 1. Draw Top Banner
-    draw.rectangle([0, 0, width, top_bar_height], fill=fb_blue)
-    
-    # 2. Draw Bottom Banner
-    draw.rectangle([0, height - bottom_bar_height, width, height], fill=fb_blue)
-    
-    # 3. Draw Borders (Yellow outer, black inner, yellow innermost)
-    border_thickness = 8
-    
-    # Outer border around the whole image
+    # 1. Outer yellow border (5px)
     draw.rectangle([0, 0, width, height], outline=yellow, width=5)
-    draw.rectangle([5, 5, width-5, height-5], outline=black, width=3)
-    draw.rectangle([8, 8, width-8, height-8], outline=yellow, width=2)
+    
+    # 2. Draw Top Banner (Using extracted exact asset)
+    top_banner_path = os.path.join(os.path.dirname(__file__), "../assets/top_banner_extracted.png")
+    top_bar_height = 90
+    if os.path.exists(top_banner_path):
+        top_banner_img = Image.open(top_banner_path).convert("RGBA")
+        top_banner_resized = top_banner_img.resize((width - 10, top_bar_height), Image.LANCZOS)
+        img.paste(top_banner_resized, (5, 5), top_banner_resized)
+    else:
+        draw.rectangle([5, 5, width-5, top_bar_height+5], fill=fb_blue)
+        
+    # 3. Draw Bottom Banner
+    bottom_bar_height = 340
+    draw.rectangle([5, height - bottom_bar_height - 5, width - 5, height - 5], fill=fb_blue)
     
     # Fonts
-    font_path_bold = '/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf'
-    font_path_regular = '/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf'
+    font_bold = '/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf'
+    font_reg = '/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf'
     
     try:
-        font_source = ImageFont.truetype(font_path_bold, 45)
-        font_headline = ImageFont.truetype(font_path_bold, 55)
-        font_story = ImageFont.truetype(font_path_regular, 38)
-        font_stats = ImageFont.truetype(font_path_bold, 40)
+        f_head = ImageFont.truetype(font_bold, 40)
+        f_story = ImageFont.truetype(font_reg, 32)
+        f_stats = ImageFont.truetype(font_bold, 35)
     except IOError:
-        font_source = ImageFont.load_default()
-        font_headline = ImageFont.load_default()
-        font_story = ImageFont.load_default()
-        font_stats = ImageFont.load_default()
+        f_head = f_story = f_stats = ImageFont.load_default()
         
     with Pilmoji(img) as pilmoji:
-        # --- Top Banner Content ---
-        # Profile Icon (Emoji) + Source Name
-        top_y = 35
-        pilmoji.text((40, top_y), "👤", fill=white, font=font_headline) # Profile icon
-        
-        display_name = source_name.upper() if source_name else "GLOBAL FOOTBALL NEWS"
-        pilmoji.text((120, top_y + 5), display_name, fill=white, font=font_source)
-        
-        # --- Bottom Banner Content ---
-        start_y = height - bottom_bar_height + 30
+        start_y = height - bottom_bar_height + 25
         
         # Headline
-        headline_text = headline.strip().upper()
-        if not headline_text:
-            headline_text = "HISTORIC MOMENT FOR FOOTBALL! ⚽"
-            
-        pilmoji.text((40, start_y), headline_text, fill=white, font=font_headline)
+        headline_text = headline.strip().upper() if headline else "HISTORIC MOMENT FOR FOOTBALL! ⚽"
+        pilmoji.text((30, start_y), headline_text, fill=white, font=f_head)
         
         # Story (Wrapped)
-        start_y += 80
-        if not story:
-            story = "The national team arrives to a massive crowd ahead of their crucial match! Can they go all the way? #Fifa #WorldCup #FootballNews #Sports"
-            
-        story_lines = textwrap.wrap(story, width=55)
+        start_y += 60
+        story_text = story if story else "The national team arrives to a massive crowd ahead of their crucial match! Can they go all the way? #Fifa #WorldCup"
+        story_lines = textwrap.wrap(story_text, width=65)
         for line in story_lines:
-            pilmoji.text((40, start_y), line, fill=white, font=font_story)
-            start_y += 50
+            pilmoji.text((30, start_y), line, fill=white, font=f_story)
+            start_y += 45
             
-        # Draw a thin separator line above engagement bar
+        # Separator Line
         sep_y = height - 90
-        draw.line([(30, sep_y), (width - 30, sep_y)], fill=(255,255,255,100), width=2)
+        draw.line([(25, sep_y), (width - 25, sep_y)], fill=line_color, width=2)
         
-        # Engagement Bar (Like, Comment, Share)
+        # --- ENGAGEMENT BAR ---
         engage_y = height - 70
         
-        # Random Likes (e.g. 15.2K Likes)
+        # overlapping like/heart
+        draw.ellipse([30, engage_y, 30+40, engage_y+40], fill=(24,119,242,255))
+        draw.ellipse([55, engage_y, 55+40, engage_y+40], fill=(240,40,73,255))
+        
+        pilmoji.text((35, engage_y+2), "👍", fill=white, font=f_stats)
+        pilmoji.text((60, engage_y+2), "❤️", fill=white, font=f_stats)
+        
         likes_num = round(random.uniform(10.0, 99.9), 1)
-        likes_text = f"👍❤️ {likes_num}K Likes"
-        pilmoji.text((40, engage_y), likes_text, fill=white, font=font_stats)
+        pilmoji.text((110, engage_y+2), f"{likes_num}K Likes", fill=white, font=f_stats)
         
-        # Comment
-        comment_text = "💬 Comment"
-        pilmoji.text((500, engage_y), comment_text, fill=white, font=font_stats)
-        
-        # Share
-        share_text = "↗️ Share"
-        pilmoji.text((800, engage_y), share_text, fill=white, font=font_stats)
+        pilmoji.text((600, engage_y+2), "💬 Comment", fill=white, font=f_stats)
+        pilmoji.text((820, engage_y+2), "↗️ Share", fill=white, font=f_stats)
         
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
     img.save(output_path, "PNG")
