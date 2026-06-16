@@ -59,6 +59,13 @@ def run_uploader_agent():
     edited_path = best_video['edited_path']
     print(f"Uploading Video {task_id}...")
     
+    import random
+    import time
+    
+    delay_seconds = random.randint(60, 900) # 1 to 15 minutes
+    print(f"Applying random human-like delay of {delay_seconds // 60} minutes and {delay_seconds % 60} seconds before upload...")
+    time.sleep(delay_seconds)
+    
     try:
         run_upload_pipeline(edited_path, task_id)
         
