@@ -240,8 +240,14 @@
         "profile": "https://x.com/FIFAWorldCup",
         "timestamp": "2026-06-16 01:27 PM",
         "message_id": null,
-        "status": "pending",
-        "added_at": "2026-06-16T13:27:29.952530"
+        "status": "edited",
+        "added_at": "2026-06-16T13:27:29.952530",
+        "title": "FIFA World Cup - Algeria in 2014 \ud83c\udde9\ud83c\uddff  #FIFAWorldCup",
+        "download_time": "2026-06-16 23:16:34 UTC",
+        "local_path": "/home/runner/work/Fifa_world_cup_agent_1/Fifa_world_cup_agent_1/temp/2066853334032769202.mp4",
+        "edited_path": "temp/edited_20260616_132729_2066853334032769202.mp4",
+        "hook_line": "ALGERIA TAKES THE STAGE \ud83c\udde9\ud83c\uddff",
+        "edit_time": "2026-06-16 23:19 UTC"
     },
     {
         "id": "20260616_181148_2066928539786715490",
