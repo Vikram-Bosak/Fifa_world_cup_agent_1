@@ -224,8 +224,14 @@
         "profile": "https://x.com/FIFAWorldCup",
         "timestamp": "2026-06-16 08:23 AM",
         "message_id": 258,
-        "status": "pending",
-        "added_at": "2026-06-16T08:23:30.467020"
+        "status": "uploaded",
+        "added_at": "2026-06-16T08:23:30.467020",
+        "title": "FIFA World Cup - 1998 \u27a1\ufe0f 2018  #FIFAWorldCup",
+        "download_time": "2026-06-16 21:16:23 UTC",
+        "local_path": "/home/runner/work/Fifa_world_cup_agent_1/Fifa_world_cup_agent_1/temp/2066792937871032652.mp4",
+        "edited_path": "temp/edited_20260616_082329_2066792937871032652.mp4",
+        "hook_line": "WORLD CUP MAGIC! \u26bd\ufe0f",
+        "edit_time": "2026-06-16 21:16 UTC"
     },
     {
         "id": "20260616_132729_2066853334032769202",
