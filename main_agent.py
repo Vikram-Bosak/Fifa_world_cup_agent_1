@@ -24,7 +24,7 @@ def cleanup_temp():
     except Exception as e:
         print(f"Cleanup error: {e}")
 
-def run_decoupled_pipeline():
+def run_decoupled_pipeline(force_upload=False):
     print("\n--- STARTING DECOUPLED PIPELINE ---")
     
     # 1. Run Downloader if limit not reached
@@ -44,7 +44,7 @@ def run_decoupled_pipeline():
     # 3. Run Uploader if limit not reached
     if can_upload():
         print("Checking Upload Queue...")
-        run_uploader_agent()
+        run_uploader_agent(force=force_upload)
     else:
         print("Daily Upload Limit Reached.")
         
@@ -61,11 +61,13 @@ def run_continuous_mode():
 if __name__ == "__main__":
     os.makedirs("temp", exist_ok=True)
     
+    force_upload = "--force-upload" in sys.argv
+    
     if "--test" in sys.argv:
         print("Running in TEST MODE. Bypassing US peak time check...")
-        run_decoupled_pipeline()
+        run_decoupled_pipeline(force_upload=force_upload)
     elif "--production" in sys.argv:
         run_continuous_mode()
     else:
         # Default action mode
-        run_decoupled_pipeline()
+        run_decoupled_pipeline(force_upload=force_upload)
