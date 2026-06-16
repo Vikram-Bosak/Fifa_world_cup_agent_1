@@ -63,7 +63,16 @@ def run_downloader():
         mark_video_status(post_id, "failed")
         return None
         
-    title_match = f"Twitter Video from {profile_url.split('/')[-1] if profile_url else 'Unknown'}"
+    # Extract real title using yt-dlp
+    title_cmd = [sys.executable, "-m", "yt_dlp", "--print", "title", tweet_url]
+    try:
+        title_result = subprocess.run(title_cmd, capture_output=True, text=True, check=True)
+        title_match = title_result.stdout.strip()
+        if not title_match:
+            title_match = f"Twitter Video from {profile_url.split('/')[-1] if profile_url else 'Unknown'}"
+    except Exception:
+        title_match = f"Twitter Video from {profile_url.split('/')[-1] if profile_url else 'Unknown'}"
+        
     download_dt = datetime.utcnow()
     file_name = os.path.basename(output_path)
     
