@@ -1,6 +1,6 @@
 requests
 moviepy==1.0.3
-Pillow<10.0.0
+Pillow
 yt-dlp
 python-dotenv
 google-api-python-client
