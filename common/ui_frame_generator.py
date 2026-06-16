@@ -58,24 +58,56 @@ def generate_ui_frame(output_path: str, source_name: str, headline: str, story: 
             start_y += 45
             
         # Separator Line
-        sep_y = height - 90
+        sep_y = height - 100
         draw.line([(25, sep_y), (width - 25, sep_y)], fill=line_color, width=2)
         
         # --- ENGAGEMENT BAR ---
-        engage_y = height - 70
+        engage_y = height - 80
         
-        # overlapping like/heart
+        # 'Tap or hold...' hint text
+        try:
+            f_hint = ImageFont.truetype(font_reg, 20)
+        except IOError:
+            f_hint = ImageFont.load_default()
+        pilmoji.text((490, engage_y - 20), "Tap or hold to like and react with Love, Haha, Wow, or Sad!", fill=(200, 200, 200, 255), font=f_hint)
+        
+        # overlapping emojis
         draw.ellipse([30, engage_y, 30+40, engage_y+40], fill=(24,119,242,255))
         draw.ellipse([55, engage_y, 55+40, engage_y+40], fill=(240,40,73,255))
+        draw.ellipse([80, engage_y, 80+40, engage_y+40], fill=(247,177,37,255))
+        draw.ellipse([105, engage_y, 105+40, engage_y+40], fill=(247,177,37,255))
         
         pilmoji.text((35, engage_y+2), "👍", fill=white, font=f_stats)
         pilmoji.text((60, engage_y+2), "❤️", fill=white, font=f_stats)
+        pilmoji.text((85, engage_y+2), "😂", fill=white, font=f_stats)
+        pilmoji.text((110, engage_y+2), "😲", fill=white, font=f_stats)
         
-        likes_num = round(random.uniform(10.0, 99.9), 1)
-        pilmoji.text((110, engage_y+2), f"{likes_num}K Likes", fill=white, font=f_stats)
+        likes_num = random.randint(10000, 99999)
+        formatted_likes = f"{likes_num:,} Likes"
+        pilmoji.text((160, engage_y+2), formatted_likes, fill=white, font=f_stats)
         
-        pilmoji.text((600, engage_y+2), "💬 Comment", fill=white, font=f_stats)
+        pilmoji.text((550, engage_y+2), "💬 Comment", fill=white, font=f_stats)
         pilmoji.text((820, engage_y+2), "↗️ Share", fill=white, font=f_stats)
+        
+        # --- VIDEO CREDIT OVERLAY ---
+        # Draw on the transparent area so it overlays on the video
+        credit_text = "Video Credit: FIFA World Cup™"
+        try:
+            f_credit = ImageFont.truetype(font_bold, 35)
+        except IOError:
+            f_credit = ImageFont.load_default()
+            
+        credit_w = pilmoji.getsize(credit_text, font=f_credit)[0]
+        # Position at bottom right of the video area (video ends at y=1100 - bottom_bar_height)
+        # bottom_bar_height is 340. y_video_end = 1440 - 340 = 1100.
+        credit_x = width - credit_w - 30
+        credit_y = height - bottom_bar_height - 50
+        
+        # Draw stroke/shadow for visibility
+        shadow_color = (0, 0, 0, 200)
+        for offset in [(2,2), (-2,-2), (2,-2), (-2,2), (0,2), (2,0), (-2,0), (0,-2)]:
+            pilmoji.text((credit_x + offset[0], credit_y + offset[1]), credit_text, fill=shadow_color, font=f_credit)
+        pilmoji.text((credit_x, credit_y), credit_text, fill=white, font=f_credit)
         
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
     img.save(output_path, "PNG")
