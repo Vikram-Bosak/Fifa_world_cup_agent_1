@@ -36,17 +36,20 @@ def is_smart_upload_time():
     return True, "Valid slot"
 
 
-def run_uploader_agent():
+def run_uploader_agent(force=False):
     print("Starting Uploader Agent (Queue Mode)...")
     
-    if not can_upload():
+    if not force and not can_upload():
         print("Daily Upload Limit Reached (5/5). Exiting uploader.")
         return None
         
-    is_smart, reason = is_smart_upload_time()
-    if not is_smart:
-        print(f"Skipping upload: {reason}")
-        return None
+    if not force:
+        is_smart, reason = is_smart_upload_time()
+        if not is_smart:
+            print(f"Skipping upload: {reason}")
+            return None
+    else:
+        print("Force upload flag is set. Bypassing upload limits and smart timing checks.")
         
     print(">>> Checking Queue for edited videos...")
     best_video = get_oldest_video_by_status("edited")
@@ -62,9 +65,12 @@ def run_uploader_agent():
     import random
     import time
     
-    delay_seconds = random.randint(60, 900) # 1 to 15 minutes
-    print(f"Applying random human-like delay of {delay_seconds // 60} minutes and {delay_seconds % 60} seconds before upload...")
-    time.sleep(delay_seconds)
+    if not force:
+        delay_seconds = random.randint(60, 900) # 1 to 15 minutes
+        print(f"Applying random human-like delay of {delay_seconds // 60} minutes and {delay_seconds % 60} seconds before upload...")
+        time.sleep(delay_seconds)
+    else:
+        print("Force upload flag is set. Skipping random human-like delay...")
     
     try:
         run_upload_pipeline(edited_path, task_id)
