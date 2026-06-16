@@ -3,8 +3,8 @@ name: Twitter Scanner Agent
 on:
   workflow_dispatch:
   schedule:
-    # Runs every 2 hours
-    - cron: '0 */2 * * *'
+    # Runs every 1 hour
+    - cron: '0 * * * *'
 
 permissions:
   contents: write
