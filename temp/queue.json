@@ -208,8 +208,14 @@
         "profile": "https://x.com/FIFAWorldCup",
         "timestamp": "2026-06-15 10:17 PM",
         "message_id": 256,
-        "status": "pending",
-        "added_at": "2026-06-15T22:17:25.563478"
+        "status": "uploaded",
+        "added_at": "2026-06-15T22:17:25.563478",
+        "title": "FIFA World Cup - Saudi Arabia is ready in Miami. \ud83c\uddf8\ud83c\udde6  Find where to watch the #FIFAWorl...",
+        "download_time": "2026-06-16 17:37:06 UTC",
+        "local_path": "/home/runner/work/Fifa_world_cup_agent_1/Fifa_world_cup_agent_1/temp/2066642305738551343.mp4",
+        "edited_path": "temp/edited_20260615_221724_2066642305738551343.mp4",
+        "hook_line": "SAUDI ARABIA ARRIVES! \ud83c\uddf8\ud83c\udde6",
+        "edit_time": "2026-06-16 17:37 UTC"
     },
     {
         "id": "20260616_082329_2066792937871032652",
