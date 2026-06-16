@@ -65,10 +65,11 @@ def analyze_video_for_editing(context: dict) -> dict:
     """
     client = _get_client()
     
+    original_title = context.get('title', '')
     fallback = {
         "category": "Highlight",
-        "short_headline": "MUST WATCH",
-        "story": "Did you notice this historic moment?",
+        "short_headline": original_title[:35] + "..." if len(original_title) > 35 else (original_title if original_title else "MUST WATCH"),
+        "story": original_title if original_title else "Did you notice this historic moment?",
         "overlay_text": "EPIC FOOTBALL SKILLS"
     }
     
