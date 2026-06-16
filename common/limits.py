@@ -66,5 +66,10 @@ def can_upload() -> bool:
 def increment_upload():
     data = _load_limits()
     data["uploads"] = data.get("uploads", 0) + 1
+    data["last_upload_time"] = datetime.utcnow().isoformat()
     _save_limits(data)
     print(f"Daily Uploads count updated: {data['uploads']}/{MAX_UPLOADS}")
+
+def get_last_upload_time():
+    data = _load_limits()
+    return data.get("last_upload_time")
