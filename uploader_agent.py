@@ -13,8 +13,8 @@ def is_smart_upload_time():
     est_time = utc_now - timedelta(hours=5)
     current_hour = est_time.hour
     
-    # 5 fixed US EST peak slots + temp testing slots
-    peak_slots = [3, 4, 8, 12, 16, 19, 21]
+    # 5 fixed US EST peak slots
+    peak_slots = [8, 12, 16, 19, 21]
     
     if current_hour not in peak_slots:
         return False, f"Not a peak slot (Current EST hour: {current_hour})"
