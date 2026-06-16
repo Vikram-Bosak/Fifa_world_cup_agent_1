@@ -41,8 +41,8 @@ def run_decoupled_pipeline(force_upload=False):
     else:
         print("Daily Edit Limit Reached.")
         
-    # 3. Run Uploader if limit not reached
-    if can_upload():
+    # 3. Run Uploader if limit not reached or forced
+    if force_upload or can_upload():
         print("Checking Upload Queue...")
         run_uploader_agent(force=force_upload)
     else:
