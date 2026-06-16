@@ -131,8 +131,11 @@
         "profile": "https://x.com/FIFAWorldCup",
         "timestamp": "2026-06-15 10:00 AM",
         "message_id": 251,
-        "status": "pending",
-        "added_at": "2026-06-15T10:01:05.013200"
+        "status": "failed",
+        "added_at": "2026-06-15T10:01:05.013200",
+        "title": "Twitter Video from FIFAWorldCup",
+        "download_time": "2026-06-16 13:15:09 UTC",
+        "local_path": "/home/runner/work/Fifa_world_cup_agent_1/Fifa_world_cup_agent_1/temp/2066431285665653179.mp4"
     },
     {
         "id": "20260615_155350_2066541260228239405",
