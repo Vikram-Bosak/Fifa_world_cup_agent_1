@@ -22,40 +22,20 @@ def get_video_dimensions(file_path):
         print(f"Error getting video dimensions: {e}")
         return 1920, 1080 # fallback to horizontal
 
-def edit_3_4_custom_layout_template(input_path: str, logo_path: str, output_path: str, hook_line: str = "VIRAL NEWS!", source_credit: str = ""):
-    print("Applying Custom 3:4 Layout Template (Border & Black Box)...")
+def edit_3_4_custom_layout_template(input_path: str, logo_path: str, output_path: str, headline: str = "VIRAL NEWS!", story: str = "", source_credit: str = ""):
+    print("Applying Custom Native Facebook Layout Template...")
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
     
-    # 1080x1440 Canvas. Video takes top 1080x1050, leaving a 390px black box at the bottom.
+    from common.ui_frame_generator import generate_ui_frame
+    frame_path = "temp/ui_frame.png"
+    generate_ui_frame(frame_path, source_credit, headline, story)
+    
+    # 1080x1440 Canvas. Video takes 1080x940 at y=120.
     # We apply the original zoom, flip, speed, and color grading effects.
     filter_complex = (
-        "color=c=#FFD700:s=1080x1440[bg];"
-        "[0:v]hflip,setpts=PTS/1.05,scale=1080:1050:force_original_aspect_ratio=increase,crop=1080:1050,eq=contrast=1.05:brightness=0.02:saturation=1.15:gamma=1.0,unsharp=5:5:0.5[vid_processed];"
-        "[bg][vid_processed]overlay=0:0[with_vid];"
-        "[1:v]scale=150:-1[logo];"
-        "[with_vid][logo]overlay=(W-w)/2:40[with_logo]"
-    )
-    
-    from common.text_renderer import create_text_overlay
-    overlay_path = "temp/hook_overlay.png"
-    create_text_overlay(hook_line, overlay_path, max_width=1000, max_height=340)
-    
-    filter_complex += f";[2:v]scale=1000:340[hook_img];"
-    filter_complex += f"[with_logo][hook_img]overlay=40:1075[with_hook]"
-    
-    if source_credit:
-        credit_file = "temp/credit_line.txt"
-        with open(credit_file, "w", encoding="utf-8") as f:
-            f.write(f"Credit: {source_credit}")
-        filter_complex += f";[with_hook]drawtext=textfile='{credit_file}':fontcolor=white@0.8:fontfile='/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf':fontsize=35:x=w-text_w-30:y=1000:box=1:boxcolor=black@0.6:boxborderw=10[outv_temp]"
-    else:
-        filter_complex += ";[with_hook]copy[outv_temp]"
-        
-    # Apply reference image border: Thick yellow outer, thin black middle, thin yellow inner
-    filter_complex += (
-        ";[outv_temp]drawbox=x=0:y=0:w=1080:h=1440:color=yellow:thickness=5[border1];"
-        "[border1]drawbox=x=5:y=5:w=1070:h=1430:color=black:thickness=4[border2];"
-        "[border2]drawbox=x=9:y=9:w=1062:h=1422:color=yellow:thickness=3[outv]"
+        "[0:v]hflip,setpts=PTS/1.05,scale=1080:940:force_original_aspect_ratio=increase,crop=1080:940,eq=contrast=1.05:brightness=0.02:saturation=1.15:gamma=1.0,unsharp=5:5:0.5[vid_processed];"
+        "[vid_processed]pad=1080:1440:0:120:color=black[bg];"
+        "[bg][1:v]overlay=0:0[outv]"
     )
     
     has_audio = False
@@ -64,7 +44,7 @@ def edit_3_4_custom_layout_template(input_path: str, logo_path: str, output_path
         if out.strip(): has_audio = True
     except: pass
 
-    cmd = ["ffmpeg", "-y", "-i", input_path, "-i", logo_path, "-i", overlay_path]
+    cmd = ["ffmpeg", "-y", "-i", input_path, "-i", frame_path]
 
     # Audio volume boost logic (no BGM)
     if has_audio:
@@ -98,7 +78,8 @@ def process_video_dynamically(input_path: str, logo_path: str, output_path: str,
     analysis = analyze_video_for_editing(task)
     print(f"Analysis Output: {json.dumps(analysis)}")
     
-    hook_line = analysis.get("hook_line", "VIRAL NEWS!")
+    headline = analysis.get("short_headline", "VIRAL NEWS!")
+    story = analysis.get("story", analysis.get("hook_line", ""))
     source_credit = task.get("source", "")
     
     # Save full analysis state for Uploader Phase
@@ -109,7 +90,7 @@ def process_video_dynamically(input_path: str, logo_path: str, output_path: str,
         full_context.update(analysis)
         json.dump(full_context, f, indent=4)
         
-    template_used = edit_3_4_custom_layout_template(input_path, logo_path, output_path, hook_line, source_credit)
+    template_used = edit_3_4_custom_layout_template(input_path, logo_path, output_path, headline, story, source_credit)
         
     print("Video editing completed!")
     
@@ -132,7 +113,7 @@ def process_video_dynamically(input_path: str, logo_path: str, output_path: str,
     
     print("Process finished. Returning local path for sequential processing.")
     
-    return output_path, hook_line
+    return output_path, headline
 
 if __name__ == "__main__":
     dummy_task = {"id": "test_123", "title": "Crazy test video", "source": "FIFA World Cup"}
