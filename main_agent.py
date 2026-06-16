@@ -53,10 +53,7 @@ def run_decoupled_pipeline():
 def run_continuous_mode():
     print("Starting Pipeline in Continuous Production Mode...")
     while True:
-        if is_us_peak_time():
-            run_decoupled_pipeline()
-        else:
-            print("Not currently US peak time. Processing is paused.")
+        run_decoupled_pipeline()
             
         print("Sleeping for 10 minutes before next check...")
         time.sleep(600)
@@ -71,7 +68,4 @@ if __name__ == "__main__":
         run_continuous_mode()
     else:
         # Default action mode
-        if not is_us_peak_time():
-            print("Not currently US peak time. Exiting Action Mode...")
-        else:
-            run_decoupled_pipeline()
+        run_decoupled_pipeline()
