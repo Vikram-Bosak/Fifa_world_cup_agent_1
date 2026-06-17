@@ -6,7 +6,7 @@ import textwrap
 from dotenv import load_dotenv
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from common.telegram import send_video
+from src.common.telegram import send_video
 
 def get_video_dimensions(file_path):
     cmd = [
@@ -26,7 +26,7 @@ def edit_3_4_custom_layout_template(input_path: str, logo_path: str, output_path
     print("Applying Custom Native Facebook Layout Template...")
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
     
-    from common.ui_frame_generator import generate_ui_frame
+    from src.common.ui_frame_generator import generate_ui_frame
     frame_path = "temp/ui_frame.png"
     generate_ui_frame(frame_path, source_credit, headline, story)
     
@@ -63,7 +63,7 @@ def edit_3_4_custom_layout_template(input_path: str, logo_path: str, output_path
     return "3:4 Custom Layout Template"
 
 def process_video_dynamically(input_path: str, logo_path: str, output_path: str, task: dict = None):
-    from common.seo_generator import analyze_video_for_editing
+    from src.common.seo_generator import analyze_video_for_editing
     
     task = task or {}
     print(f"Analyzing {input_path}...")
@@ -107,7 +107,7 @@ def process_video_dynamically(input_path: str, logo_path: str, output_path: str,
         f"**Editing Status:** SUCCESS"
     )
     
-    from common.telegram import send_message
+    from src.common.telegram import send_message
     print("Sending Editing Status Report to Telegram...")
     send_message(message_text)
     
