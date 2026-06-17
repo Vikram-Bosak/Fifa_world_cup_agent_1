@@ -66,11 +66,6 @@ async def extract_latest_video_tweets(profile_urls: List[str], max_per_profile: 
                                 # Example: 2023-11-20T14:30:00.000Z
                                 dt_str_clean = dt_str.replace('Z', '+00:00')
                                 tweet_time = datetime.fromisoformat(dt_str_clean)
-                                now_utc = datetime.now(timezone.utc)
-                                
-                                if now_utc - tweet_time > timedelta(hours=2):
-                                    print(f"Tweet {tweet_id} is older than 2 hours ({tweet_time.strftime('%Y-%m-%d %H:%M')}). Skipping.")
-                                    continue
                                 parsed_datetime = tweet_time
                             except Exception as e:
                                 print(f"Error parsing date {dt_str}: {e}")
