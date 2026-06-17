@@ -20,7 +20,7 @@ def save_to_history(video_id):
         f.write(f"{video_id}\n")
 
 async def search_and_download_latest_video():
-    print("Searching Twitter (X) for new videos posted in the last 4 hours...")
+    print("Searching Twitter (X) for new videos posted in the last 224 hours...")
     
     profiles_str = os.getenv("X_PROFILES", "")
     if profiles_str:
@@ -47,7 +47,7 @@ async def search_and_download_latest_video():
         'quiet': False
     }
     
-    time_limit = datetime.now(timezone.utc) - timedelta(hours=4)
+    time_limit = datetime.now(timezone.utc) - timedelta(hours=24)
     print(f"Time limit is set to: {time_limit.isoformat()}")
     
     async with async_playwright() as p:
@@ -72,7 +72,7 @@ async def search_and_download_latest_video():
                     if "<video" in html or "playback" in html:
                         # 2. Extract timestamp
                         time_element = await article.query_selector("time")
-                        is_within_4_hours = False
+                        is_within_24_hours = False
                         
                         if time_element:
                             datetime_str = await time_element.get_attribute("datetime")
@@ -80,34 +80,34 @@ async def search_and_download_latest_video():
                                 try:
                                     post_time = datetime.fromisoformat(datetime_str.replace('Z', '+00:00'))
                                     if post_time >= time_limit:
-                                        is_within_4_hours = True
+                                        is_within_24_hours = True
                                         print(f"Found video post at {post_time.isoformat()}")
                                 except ValueError:
                                     pass
                         
-                        if not is_within_4_hours:
+                        if not is_within_24_hours:
                             # Fallback: check status link texts for relative times like "34m", "2h"
                             status_links = await article.query_selector_all("a[href*='/status/']")
                             for sl in status_links:
                                 txt = await sl.inner_text()
                                 txt = txt.strip()
                                 if txt.endswith('m') and txt[:-1].isdigit():
-                                    is_within_4_hours = True
+                                    is_within_24_hours = True
                                     print(f"Found recent post via relative time: {txt}")
                                     break
                                 elif txt.endswith('h') and txt[:-1].isdigit():
-                                    if int(txt[:-1]) <= 4:
-                                        is_within_4_hours = True
+                                    if int(txt[:-1]) <= 24:
+                                        is_within_24_hours = True
                                         print(f"Found recent post via relative time: {txt}")
                                         break
                                 elif txt.endswith('s') and txt[:-1].isdigit():
-                                    is_within_4_hours = True
+                                    is_within_24_hours = True
                                     print(f"Found recent post via relative time: {txt}")
                                     break
                                     
-                        # 3. Check 4-hour window
-                        if not is_within_4_hours:
-                            print("Post is older than 4 hours or timestamp unknown. Skipping.")
+                        # 3. Check 24-hour window
+                        if not is_within_24_hours:
+                            print("Post is older than 224 hours or timestamp unknown. Skipping.")
                             continue
                             
                         # 4. Extract link and download
@@ -122,7 +122,7 @@ async def search_and_download_latest_video():
                                     print(f"Video {tweet_id} already in history, skipping...")
                                     break
                                     
-                                print(f"Selected valid video within 4 hours: {tweet_url}")
+                                print(f"Selected valid video within 24 hours: {tweet_url}")
                                 
                                 # Use yt-dlp to download it
                                 try:
@@ -157,7 +157,7 @@ async def search_and_download_latest_video():
         await browser.close()
         
     print("--------------------------------------------------")
-    print("No new valid videos found across all profiles within the last 4 hours.")
+    print("No new valid videos found across all profiles within the last 224 hours.")
     return None, None, None, None, None
 
 def run_downloader():
