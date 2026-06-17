@@ -1,73 +1,37 @@
 import os
 import sys
-import time
-import shutil
-from datetime import datetime, timezone, timedelta
-
-sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 from downloader.standalone_downloader import run_downloader
 from editor_agent import run_editor_agent
 from uploader_agent import run_uploader_agent
-from common.limits import can_download, can_edit, can_upload
+from common.telegram import report_final_summary
 
-def is_us_peak_time():
-    utc_now = datetime.now(timezone.utc)
-    est_time = utc_now - timedelta(hours=5)
-    hour = est_time.hour
-    return (8 <= hour < 10) or (12 <= hour < 14) or (17 <= hour < 20)
-
-def cleanup_temp():
-    try:
-        shutil.rmtree("temp")
-        os.makedirs("temp", exist_ok=True)
-    except Exception as e:
-        print(f"Cleanup error: {e}")
-
-def run_decoupled_pipeline(force_upload=False):
-    print("\n--- STARTING DECOUPLED PIPELINE ---")
+def run_single_sequence():
+    print("\n--- STARTING SEQUENTIAL PIPELINE (SINGLE RUN) ---")
     
-    # 1. Run Downloader if limit not reached
-    if can_download():
-        print("Checking Download Queue...")
-        run_downloader()
-    else:
-        print("Daily Download Limit Reached.")
+    # 1. Download
+    video_data = run_downloader()
+    if not video_data:
+        print("Pipeline stopped: No video downloaded.")
+        return False
         
-    # 2. Run Editor if limit not reached
-    if can_edit():
-        print("Checking Edit Queue...")
-        run_editor_agent()
-    else:
-        print("Daily Edit Limit Reached.")
+    task_id = video_data.get('id')
+    print(f"Downloaded Video: {task_id}")
+    
+    # 2. Edit
+    video_data = run_editor_agent(video_data)
+    if not video_data or video_data.get("status") == "failed":
+        print(f"Pipeline stopped: Editing failed for {task_id}")
+        return False
         
-    # 3. Run Uploader if limit not reached or forced
-    if force_upload or can_upload():
-        print("Checking Upload Queue...")
-        run_uploader_agent(force=force_upload)
-    else:
-        print("Daily Upload Limit Reached.")
-        
+    # 3. Upload
+    video_data = run_uploader_agent(video_data)
+    
+    # Final Report
+    report_final_summary(video_data)
+    
     print("Pipeline run completed.")
-
-def run_continuous_mode():
-    print("Starting Pipeline in Continuous Production Mode...")
-    while True:
-        run_decoupled_pipeline()
-            
-        print("Sleeping for 10 minutes before next check...")
-        time.sleep(600)
+    return True
 
 if __name__ == "__main__":
-    os.makedirs("temp", exist_ok=True)
-    
-    force_upload = "--force-upload" in sys.argv
-    
-    if "--test" in sys.argv:
-        print("Running in TEST MODE. Bypassing US peak time check...")
-        run_decoupled_pipeline(force_upload=force_upload)
-    elif "--production" in sys.argv:
-        run_continuous_mode()
-    else:
-        # Default action mode
-        run_decoupled_pipeline(force_upload=force_upload)
+    run_single_sequence()
