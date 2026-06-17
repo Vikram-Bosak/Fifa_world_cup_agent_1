@@ -275,5 +275,16 @@
         "message_id": 212,
         "status": "pending",
         "added_at": "2026-06-17T11:12:43.985554"
+    },
+    {
+        "id": "20260617_122358_2067208040202621435",
+        "tweet_id": "2067208040202621435",
+        "source_url": "https://x.com/FIFAWorldCup/status/2067208040202621435",
+        "profile": "https://x.com/FIFAWorldCup",
+        "timestamp": "2026-06-17 12:23 PM",
+        "title": "FIFA World Cup - Gyan's moment \ud83c\uddec\ud83c\udded\u23f0  #FIFAWorldCup",
+        "message_id": 213,
+        "status": "pending",
+        "added_at": "2026-06-17T12:23:59.392310"
     }
 ]
