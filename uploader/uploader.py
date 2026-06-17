@@ -138,8 +138,7 @@ def upload_to_youtube(video_path, title, description):
 
 def run_upload_pipeline(video_path: str, task_id: str = "default"):
     if not os.path.exists(video_path):
-        print(f"Error: Video file {video_path} not found.")
-        return
+        raise FileNotFoundError(f"Video file {video_path} not found.")
         
     if not can_upload():
         print("Daily upload limit (5) reached. Aborting.")
