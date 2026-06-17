@@ -22,12 +22,18 @@ def save_to_history(video_id):
 async def search_and_download_latest_video():
     print("Searching Twitter (X) for new videos posted in the last 4 hours...")
     
-    profiles = [
-        "https://x.com/THR",
-        "https://x.com/enews",
-        "https://x.com/Variety",
-        "https://x.com/FilmUpdates"
-    ]
+    profiles_str = os.getenv("X_PROFILES", "")
+    if profiles_str:
+        profiles = [p.strip() for p in profiles_str.split(',') if p.strip()]
+    else:
+        profiles = [
+            "https://x.com/WorldCupMedia_",
+            "https://x.com/Waleedahmdd",
+            "https://x.com/ofootball__",
+            "https://x.com/FIFAWorldCup",
+            "https://x.com/Cristiano",
+            "https://x.com/espnfc"
+        ]
     
     history = load_history()
     
