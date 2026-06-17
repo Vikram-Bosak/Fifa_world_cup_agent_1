@@ -70,65 +70,40 @@ async def search_and_download_latest_video():
                     
                     # 1. Check if it's a video
                     if "<video" in html or "playback" in html:
-                        # 2. Extract timestamp
-                        time_element = await article.query_selector("time")
-                        is_within_2_hours = False
-                        
-                        if time_element:
-                            datetime_str = await time_element.get_attribute("datetime")
-                            if datetime_str:
-                                try:
-                                    post_time = datetime.fromisoformat(datetime_str.replace('Z', '+00:00'))
-                                    if post_time >= time_limit:
-                                        is_within_2_hours = True
-                                        print(f"Found video post at {post_time.isoformat()}")
-                                except ValueError:
-                                    pass
-                        
-                        if not is_within_2_hours:
-                            # Fallback: check status link texts for relative times like "34m", "2h"
-                            status_links = await article.query_selector_all("a[href*='/status/']")
-                            for sl in status_links:
-                                txt = await sl.inner_text()
-                                txt = txt.strip()
-                                if txt.endswith('m') and txt[:-1].isdigit():
-                                    is_within_2_hours = True
-                                    print(f"Found recent post via relative time: {txt}")
-                                    break
-                                elif txt.endswith('h') and txt[:-1].isdigit():
-                                    if int(txt[:-1]) <= 2:
-                                        is_within_2_hours = True
-                                        print(f"Found recent post via relative time: {txt}")
-                                        break
-                                elif txt.endswith('s') and txt[:-1].isdigit():
-                                    is_within_2_hours = True
-                                    print(f"Found recent post via relative time: {txt}")
-                                    break
-                                    
-                        # 3. Check time window
-                        if not is_within_2_hours:
-                            # If we couldn't parse the time at all (Twitter often hides it for guests), 
-                            # we assume it's new, but ONLY if it's the very first time we see it (handled by history)
-                            if not time_element:
-                                print("Timestamp unknown. Assuming NEW for unauthenticated scraping.")
-                                is_within_2_hours = True
-                            else:
-                                print("Post is older than the time window. Skipping.")
-                                continue
-                            
-                        # 4. Extract link and download
+                        # 2. Extract link and exact timestamp via Snowflake ID
                         links = await article.query_selector_all("a[href*='/status/']")
+                        tweet_url = None
+                        tweet_id = None
+                        
                         for link in links:
                             href = await link.get_attribute("href")
                             if href and "/status/" in href and "photo" not in href:
                                 tweet_url = f"https://x.com{href}" if href.startswith("/") else href
                                 tweet_id = tweet_url.split("/status/")[1].split("/")[0].split("?")[0]
+                                break
                                 
-                                if tweet_id in history:
-                                    print(f"Video {tweet_id} already in history, skipping...")
-                                    break
-                                    
-                                print(f"Selected valid video within 2 hours: {tweet_url}")
+                        if not tweet_id or not tweet_url:
+                            continue
+                            
+                        if tweet_id in history:
+                            print(f"Video {tweet_id} already in history, skipping...")
+                            continue
+                            
+                        # Calculate exact post time using Twitter Snowflake ID formula
+                        try:
+                            # Formula: (tweet_id >> 22) + 1288834974657 = timestamp in ms
+                            timestamp_ms = (int(tweet_id) >> 22) + 1288834974657
+                            post_time = datetime.fromtimestamp(timestamp_ms / 1000, timezone.utc)
+                            print(f"Tweet {tweet_id} posted at: {post_time.isoformat()}")
+                            
+                            if post_time < time_limit:
+                                print(f"Post is older than 2 hours. Skipping.")
+                                continue
+                                
+                            print(f"Selected valid NEW video within 2 hours: {tweet_url}")
+                        except ValueError:
+                            print("Invalid tweet ID format. Skipping.")
+                            continue
                                 
                                 # Use yt-dlp to download it
                                 try:
