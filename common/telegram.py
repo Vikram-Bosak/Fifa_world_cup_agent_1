@@ -50,6 +50,11 @@ def edit_message_text(message_id: int, new_text: str, chat_id: str = None) -> bo
         response = requests.post(url, json=payload, timeout=10)
         response.raise_for_status()
         return True
+    except requests.exceptions.HTTPError as e:
+        if e.response is not None and "message is not modified" in e.response.text:
+            return True # It's fine, the message is already at the desired state
+        print(f"Failed to edit Telegram message text: {e.response.text if e.response else e}")
+        return False
     except Exception as e:
         print(f"Failed to edit Telegram message text: {e}")
         return False
