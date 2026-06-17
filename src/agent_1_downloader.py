@@ -27,12 +27,16 @@ async def search_and_download_latest_video():
         profiles = [p.strip() for p in profiles_str.split(',') if p.strip()]
     else:
         profiles = [
-            "https://x.com/WorldCupMedia_",
+            "https://x.com/WorldCupMedia",
             "https://x.com/Waleedahmdd",
-            "https://x.com/ofootball__",
-            "https://x.com/FIFAWorldCup",
-            "https://x.com/Cristiano",
-            "https://x.com/espnfc"
+            "https://x.com/FIFAWC26Updates",
+            "https://x.com/FIFAcom",
+            "https://x.com/SkyFootball",
+            "https://x.com/TheSunFootball",
+            "https://x.com/footballontnt",
+            "https://x.com/TrollFootball",
+            "https://x.com/Footballtweet",
+            "https://x.com/FBAwayDays"
         ]
     
     history = load_history()
