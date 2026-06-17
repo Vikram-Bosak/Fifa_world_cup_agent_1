@@ -257,7 +257,12 @@
         "timestamp": "2026-06-16 06:11 PM",
         "title": "FIFA World Cup - Unforgettable names \u2728  #FIFAWorldCup",
         "message_id": 200,
-        "status": "pending",
-        "added_at": "2026-06-16T18:11:49.661953"
+        "status": "edited",
+        "added_at": "2026-06-16T18:11:49.661953",
+        "download_time": "2026-06-17 05:56:41 UTC",
+        "local_path": "/home/runner/work/Fifa_world_cup_agent_1/Fifa_world_cup_agent_1/temp/2066928539786715490.mp4",
+        "edited_path": "temp/edited_20260616_181148_2066928539786715490.mp4",
+        "hook_line": "LEGENDS OF THE PITCH \u26bd\ufe0f",
+        "edit_time": "2026-06-17 05:57 UTC"
     }
 ]
