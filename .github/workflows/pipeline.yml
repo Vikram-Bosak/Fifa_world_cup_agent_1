@@ -49,11 +49,11 @@ jobs:
         run: |
           python main_agent.py --force-upload
 
-      - name: Commit and Push Queue Updates
+      - name: Commit and Push History Updates
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
-          git add temp/queue.json || echo "No queue changes"
-          git commit -m "Auto-update video queue from main pipeline" || echo "No changes to commit"
+          git add temp/downloaded_history.txt || echo "No history changes"
+          git commit -m "Auto-update video history from main pipeline" || echo "No changes to commit"
           git pull --rebase origin main || true
           git push
