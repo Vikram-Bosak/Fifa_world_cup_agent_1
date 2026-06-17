@@ -52,44 +52,52 @@ def run_uploader_agent(force=False):
         print("Force upload flag is set. Bypassing upload limits and smart timing checks.")
         
     print(">>> Checking Queue for edited videos...")
-    best_video = get_oldest_video_by_status("edited")
     
-    if not best_video:
-        print("No edited videos found in the queue.")
-        return None
+    while True:
+        best_video = get_oldest_video_by_status("edited")
+        if not best_video:
+            print("No edited videos found in the queue.")
+            return None
+            
+        task_id = best_video['id']
+        edited_path = best_video['edited_path']
+        print(f"Uploading Video {task_id}...")
         
-    task_id = best_video['id']
-    edited_path = best_video['edited_path']
-    print(f"Uploading Video {task_id}...")
-    
-    import random
-    import time
-    
-    if not force:
-        delay_seconds = random.randint(60, 900) # 1 to 15 minutes
-        print(f"Applying random human-like delay of {delay_seconds // 60} minutes and {delay_seconds % 60} seconds before upload...")
-        time.sleep(delay_seconds)
-    else:
-        print("Force upload flag is set. Skipping random human-like delay...")
-    
-    try:
-        run_upload_pipeline(edited_path, task_id)
+        import random
+        import time
         
-        # Update video_data
-        best_video["status"] = "uploaded"
+        if not force:
+            delay_seconds = random.randint(60, 900) # 1 to 15 minutes
+            print(f"Applying random human-like delay of {delay_seconds // 60} minutes and {delay_seconds % 60} seconds before upload...")
+            time.sleep(delay_seconds)
+        else:
+            print("Force upload flag is set. Skipping random human-like delay...")
         
-        # Save the status back to queue.json and edit the Telegram queue message
-        mark_video_status(task_id, "uploaded")
-        update_queue_message(best_video)
-        
-        print("Successfully uploaded a video.")
-        return best_video
-        
-    except Exception as e:
-        print(f"Upload failed: {e}")
-        send_message(f"❌ <b>Upload Failed for {task_id}:</b>\n{e}")
-        mark_video_status(task_id, "failed")
-        return None
+        try:
+            run_upload_pipeline(edited_path, task_id)
+            
+            # Update video_data
+            best_video["status"] = "uploaded"
+            
+            # Save the status back to queue.json and edit the Telegram queue message
+            mark_video_status(task_id, "uploaded")
+            update_queue_message(best_video)
+            
+            print("Successfully uploaded a video.")
+            return best_video
+            
+        except FileNotFoundError as e:
+            print(f"Upload failed: {e}")
+            send_message(f"❌ <b>Upload Failed for {task_id}: File not found. Skipping.</b>")
+            mark_video_status(task_id, "failed")
+            continue # Try the next edited video in the queue
+            
+        except Exception as e:
+            print(f"Upload failed: {e}")
+            send_message(f"❌ <b>Upload Failed for {task_id}:</b>\n{e}")
+            mark_video_status(task_id, "failed")
+            return None
 
 if __name__ == "__main__":
-    run_uploader_agent()
+    force_upload = "--force" in sys.argv
+    run_uploader_agent(force=force_upload)
