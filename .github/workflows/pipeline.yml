@@ -47,11 +47,7 @@ jobs:
 
       - name: Run Sequential Pipeline (Download -> Edit -> Upload)
         run: |
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            python main_agent.py --force-upload
-          else
-            python main_agent.py
-          fi
+          python main_agent.py --force-upload
 
       - name: Commit and Push Queue Updates
         run: |
@@ -59,4 +55,5 @@ jobs:
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
           git add temp/queue.json || echo "No queue changes"
           git commit -m "Auto-update video queue from main pipeline" || echo "No changes to commit"
+          git pull --rebase origin main || true
           git push
