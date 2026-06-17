@@ -105,10 +105,16 @@ async def search_and_download_latest_video():
                                     print(f"Found recent post via relative time: {txt}")
                                     break
                                     
-                        # 3. Check 2-hour window
+                        # 3. Check time window
                         if not is_within_2_hours:
-                            print("Post is older than 22 hours or timestamp unknown. Skipping.")
-                            continue
+                            # If we couldn't parse the time at all (Twitter often hides it for guests), 
+                            # we assume it's new, but ONLY if it's the very first time we see it (handled by history)
+                            if not time_element:
+                                print("Timestamp unknown. Assuming NEW for unauthenticated scraping.")
+                                is_within_2_hours = True
+                            else:
+                                print("Post is older than the time window. Skipping.")
+                                continue
                             
                         # 4. Extract link and download
                         links = await article.query_selector_all("a[href*='/status/']")
