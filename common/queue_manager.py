@@ -4,7 +4,7 @@ from datetime import datetime
 
 QUEUE_FILE = os.path.join(os.path.dirname(os.path.dirname(__file__)), "temp", "queue.json")
 
-def _load_queue():
+def load_queue():
     if not os.path.exists(QUEUE_FILE):
         return []
     try:
@@ -24,7 +24,7 @@ def _save_queue(data):
 
 def add_to_queue(video_data):
     """Add a new video to the queue if it doesn't already exist."""
-    queue = _load_queue()
+    queue = load_queue()
     
     # Check if already in queue
     for item in queue:
@@ -32,7 +32,8 @@ def add_to_queue(video_data):
             return False # Duplicate
             
     # Add to queue
-    video_data["status"] = "pending"
+    if "status" not in video_data:
+        video_data["status"] = "pending"
     video_data["added_at"] = datetime.utcnow().isoformat()
     queue.append(video_data)
     _save_queue(queue)
@@ -40,7 +41,7 @@ def add_to_queue(video_data):
 
 def get_oldest_video_by_status(status):
     """Retrieve the oldest video with the given status and mark it as processing_{status}."""
-    queue = _load_queue()
+    queue = load_queue()
     
     # Sort by added_at to ensure FIFO (oldest first)
     items = [item for item in queue if item.get("status") == status]
@@ -61,7 +62,7 @@ def get_oldest_video_by_status(status):
 
 def mark_video_status(video_id, status, **kwargs):
     """Mark a video as a specific status and update additional fields."""
-    queue = _load_queue()
+    queue = load_queue()
     updated = False
     for item in queue:
         if item.get("id") == video_id:
@@ -77,7 +78,7 @@ def mark_video_status(video_id, status, **kwargs):
 
 def is_duplicate(tweet_id):
     """Check if the video is already in the queue or has been processed."""
-    queue = _load_queue()
+    queue = load_queue()
     for item in queue:
         if item.get("tweet_id") == tweet_id:
             return True
