@@ -148,6 +148,46 @@ def download_video_from_telegram(file_id: str, output_path: str) -> bool:
         print(f"Failed to download video from Telegram: {e}")
     return False
 
+def get_latest_telegram_videos(limit=50) -> list:
+    if not TELEGRAM_BOT_TOKEN or not TELEGRAM_CHAT_ID:
+        print("Telegram configuration is missing. Cannot fetch updates.")
+        return []
+        
+    url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/getUpdates?limit={limit}"
+    videos = []
+    try:
+        response = requests.get(url, timeout=10)
+        response.raise_for_status()
+        data = response.json()
+        
+        if data.get("ok"):
+            for update in data.get("result", []):
+                msg = update.get("message", update.get("channel_post", {}))
+                
+                # Check if this message is in our target chat
+                chat_id = str(msg.get("chat", {}).get("id", ""))
+                if chat_id != TELEGRAM_CHAT_ID and chat_id != TELEGRAM_CHAT_ID.replace("-100", ""):
+                    continue
+                    
+                if "video" in msg:
+                    file_id = msg["video"]["file_id"]
+                    msg_id = msg.get("message_id")
+                    caption = msg.get("caption", "")
+                    date = msg.get("date")
+                    
+                    videos.append({
+                        "file_id": file_id,
+                        "message_id": msg_id,
+                        "caption": caption,
+                        "date": date
+                    })
+                    
+        return sorted(videos, key=lambda x: x["date"])
+    except Exception as e:
+        print(f"Failed to fetch Telegram updates: {e}")
+        return []
+
+
 def edit_message_caption(message_id: int, new_caption: str, chat_id: str = None) -> bool:
     target_chat = chat_id or TELEGRAM_CHAT_ID
     if not TELEGRAM_BOT_TOKEN or not target_chat:
