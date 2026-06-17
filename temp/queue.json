@@ -257,7 +257,7 @@
         "timestamp": "2026-06-16 06:11 PM",
         "title": "FIFA World Cup - Unforgettable names \u2728  #FIFAWorldCup",
         "message_id": 200,
-        "status": "edited",
+        "status": "uploaded",
         "added_at": "2026-06-16T18:11:49.661953",
         "download_time": "2026-06-17 05:56:41 UTC",
         "local_path": "/home/runner/work/Fifa_world_cup_agent_1/Fifa_world_cup_agent_1/temp/2066928539786715490.mp4",
@@ -289,7 +289,12 @@
         "timestamp": "2026-06-17 12:23 PM",
         "title": "FIFA World Cup - Gyan's moment \ud83c\uddec\ud83c\udded\u23f0  #FIFAWorldCup",
         "message_id": 213,
-        "status": "pending",
-        "added_at": "2026-06-17T12:23:59.392310"
+        "status": "edited",
+        "added_at": "2026-06-17T12:23:59.392310",
+        "download_time": "2026-06-17 14:36:50 UTC",
+        "local_path": "/home/runner/work/Fifa_world_cup_agent_1/Fifa_world_cup_agent_1/temp/2067208040202621435.mp4",
+        "edited_path": "temp/edited_20260617_122358_2067208040202621435.mp4",
+        "hook_line": "GHANA'S GLORY MOMENT! \u23f0",
+        "edit_time": "2026-06-17 14:37 UTC"
     }
 ]
