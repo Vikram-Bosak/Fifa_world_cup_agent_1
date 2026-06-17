@@ -5,8 +5,7 @@ from datetime import datetime, timezone, timedelta
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 from uploader.uploader import run_upload_pipeline
 from common.limits import can_upload, get_last_upload_time
-from common.queue_manager import get_oldest_video_by_status, mark_video_status
-from common.telegram import send_message, update_queue_message
+from common.telegram import send_message
 
 def is_smart_upload_time():
     utc_now = datetime.now(timezone.utc)
@@ -35,10 +34,13 @@ def is_smart_upload_time():
             
     return True, "Valid slot"
 
-
-def run_uploader_agent(force=False):
-    print("Starting Uploader Agent (Queue Mode)...")
+def run_uploader_agent(video_data=None, force=False):
+    print("Starting Uploader Agent...")
     
+    if not video_data:
+        print("No video data provided to uploader.")
+        return None
+        
     if not force and not can_upload():
         print("Daily Upload Limit Reached (5/5). Exiting uploader.")
         return None
@@ -51,53 +53,33 @@ def run_uploader_agent(force=False):
     else:
         print("Force upload flag is set. Bypassing upload limits and smart timing checks.")
         
-    print(">>> Checking Queue for edited videos...")
+    task_id = video_data['id']
+    edited_path = video_data['edited_path']
+    print(f"Uploading Video {task_id}...")
     
-    while True:
-        best_video = get_oldest_video_by_status("edited")
-        if not best_video:
-            print("No edited videos found in the queue.")
-            return None
-            
-        task_id = best_video['id']
-        edited_path = best_video['edited_path']
-        print(f"Uploading Video {task_id}...")
+    import random
+    import time
+    
+    if not force:
+        delay_seconds = random.randint(60, 900) # 1 to 15 minutes
+        print(f"Applying random human-like delay of {delay_seconds // 60} minutes and {delay_seconds % 60} seconds before upload...")
+        time.sleep(delay_seconds)
+    else:
+        print("Force upload flag is set. Skipping random human-like delay...")
+    
+    try:
+        run_upload_pipeline(edited_path, task_id)
         
-        import random
-        import time
+        # Update video_data
+        video_data["status"] = "uploaded"
+        print("Successfully uploaded a video.")
+        return video_data
         
-        if not force:
-            delay_seconds = random.randint(60, 900) # 1 to 15 minutes
-            print(f"Applying random human-like delay of {delay_seconds // 60} minutes and {delay_seconds % 60} seconds before upload...")
-            time.sleep(delay_seconds)
-        else:
-            print("Force upload flag is set. Skipping random human-like delay...")
-        
-        try:
-            run_upload_pipeline(edited_path, task_id)
-            
-            # Update video_data
-            best_video["status"] = "uploaded"
-            
-            # Save the status back to queue.json and edit the Telegram queue message
-            mark_video_status(task_id, "uploaded")
-            update_queue_message(best_video)
-            
-            print("Successfully uploaded a video.")
-            return best_video
-            
-        except FileNotFoundError as e:
-            print(f"Upload failed: {e}")
-            send_message(f"❌ <b>Upload Failed for {task_id}: File not found. Skipping.</b>")
-            mark_video_status(task_id, "failed")
-            continue # Try the next edited video in the queue
-            
-        except Exception as e:
-            print(f"Upload failed: {e}")
-            send_message(f"❌ <b>Upload Failed for {task_id}:</b>\n{e}")
-            mark_video_status(task_id, "failed")
-            return None
+    except Exception as e:
+        print(f"Upload failed: {e}")
+        send_message(f"❌ <b>Upload Failed for {task_id}:</b>\n{e}")
+        video_data["status"] = "failed"
+        return video_data
 
 if __name__ == "__main__":
-    force_upload = "--force" in sys.argv
-    run_uploader_agent(force=force_upload)
+    pass
