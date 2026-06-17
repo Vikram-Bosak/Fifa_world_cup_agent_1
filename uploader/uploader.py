@@ -23,28 +23,61 @@ def is_us_upload_time():
     is_peak = (8 <= hour < 10) or (12 <= hour < 14) or (17 <= hour < 20)
     return is_peak
 
+def get_page_access_token(user_token, page_id):
+    """
+    Queries /me/accounts to find the Page Access Token for the target Page ID.
+    If not found or query fails, returns the user_token back as a fallback.
+    """
+    url = f"https://graph.facebook.com/v19.0/me/accounts?limit=100&access_token={user_token}"
+    try:
+        response = requests.get(url)
+        if response.status_code == 200:
+            data = response.json().get('data', [])
+            for page in data:
+                if str(page.get('id')) == str(page_id):
+                    print(f"Successfully resolved Page Access Token for page: {page.get('name')} ({page_id})")
+                    return page.get('access_token')
+            print(f"Target Page ID {page_id} not found in user accounts. Falling back to provided token.")
+        else:
+            print(f"Failed to query /me/accounts (status {response.status_code}). Falling back to provided token.")
+    except Exception as e:
+        print(f"Error resolving Page Access Token: {e}. Falling back to provided token.")
+    return user_token
+
+def _handle_api_error(response, step_name):
+    if response.status_code >= 400:
+        try:
+            err_data = response.json()
+            error_info = err_data.get('error', {})
+            err_msg = error_info.get('message')
+            if err_msg:
+                raise Exception(f"Facebook API Error ({step_name}): {err_msg}")
+        except Exception as e:
+            if "Facebook API Error" in str(e):
+                raise
+        response.raise_for_status()
+
 def upload_to_facebook(video_path, description):
     page_id = os.getenv("FB_PAGE_ID")
-    access_token = os.getenv("FB_ACCESS_TOKEN")
+    user_token = os.getenv("FB_ACCESS_TOKEN")
     
-    if not page_id or not access_token:
+    if not page_id or not user_token:
         raise Exception("Facebook credentials missing in .env")
+        
+    # Resolve Page Access Token (The Hollywood way)
+    access_token = get_page_access_token(user_token, page_id)
         
     file_size = os.path.getsize(video_path)
     
     print("Initializing Facebook Reels upload session...")
-    url = f"https://graph.facebook.com/v19.0/{page_id}/video_reels"
-    payload = {"upload_phase": "start", "access_token": access_token, "file_size": file_size}
-    try:
-        res_raw = requests.post(url, data=payload)
-        res_raw.raise_for_status()
-        res = res_raw.json()
-    except requests.exceptions.HTTPError as e:
-        raise Exception(f"FB Start HTTP Error: {e.response.text if e.response else str(e)}")
-    except Exception as e:
-        raise Exception(f"FB Start Request Error: {e}")
+    init_url = f"https://graph.facebook.com/v19.0/{page_id}/video_reels"
+    init_payload = {"upload_phase": "start", "access_token": access_token, "file_size": file_size}
     
-    if 'video_id' not in res:
+    init_response = requests.post(init_url, data=init_payload)
+    _handle_api_error(init_response, "Initialize Upload")
+    res = init_response.json()
+    
+    if 'video_id' not in res or 'upload_url' not in res:
         raise Exception(f"FB Start Logic Error: {res}")
         
     video_id = res['video_id']
@@ -58,13 +91,9 @@ def upload_to_facebook(video_path, description):
     }
     with open(video_path, 'rb') as f:
         video_data = f.read()
-        try:
-            upload_res_raw = requests.post(upload_url, headers=headers, data=video_data)
-            upload_res_raw.raise_for_status()
-        except requests.exceptions.HTTPError as e:
-            raise Exception(f"FB Upload HTTP Error: {e.response.text if e.response else str(e)}")
-        except Exception as e:
-            raise Exception(f"FB Upload Request Error: {e}")
+        
+    upload_response = requests.post(upload_url, headers=headers, data=video_data)
+    _handle_api_error(upload_response, "Upload Video Data")
         
     print("Publishing Reel...")
     payload_finish = {
@@ -74,14 +103,10 @@ def upload_to_facebook(video_path, description):
         "video_state": "PUBLISHED",
         "description": description
     }
-    try:
-        finish_res_raw = requests.post(url, data=payload_finish)
-        finish_res_raw.raise_for_status()
-        finish_res = finish_res_raw.json()
-    except requests.exceptions.HTTPError as e:
-        raise Exception(f"FB Finish HTTP Error: {e.response.text if e.response else str(e)}")
-    except Exception as e:
-        raise Exception(f"FB Finish Request Error: {e}")
+    
+    finish_response = requests.post(init_url, data=payload_finish)
+    _handle_api_error(finish_response, "Publish Video")
+    finish_res = finish_response.json()
     
     if not finish_res.get("success"):
         raise Exception(f"FB Finish Logic Error: {finish_res}")
