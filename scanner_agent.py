@@ -15,9 +15,13 @@ load_dotenv()
 # We expect X_PROFILES in .env separated by comma
 X_PROFILES_ENV = os.getenv("X_PROFILES", "")
 X_PROFILES = [url.strip() for url in X_PROFILES_ENV.split(",") if url.strip()]
+if not X_PROFILES:
+    X_PROFILES = ["https://x.com/FIFAWorldCup"]
 
 X_BACKUP_PROFILES_ENV = os.getenv("X_BACKUP_PROFILES", "")
 X_BACKUP_PROFILES = [url.strip() for url in X_BACKUP_PROFILES_ENV.split(",") if url.strip()]
+if not X_BACKUP_PROFILES:
+    X_BACKUP_PROFILES = ["https://x.com/ESPNFC", "https://x.com/brfootball", "https://x.com/ChampionsLeague"]
 
 def check_video_metadata(url: str):
     import subprocess
@@ -72,9 +76,7 @@ def run_scanner():
         
         # Calculate time difference
         time_diff = now_utc - tweet_time
-        if time_diff > timedelta(hours=2):
-            print(f"Video {tweet_id} is strictly older than 2 hours (Age: {time_diff}). Skipping old video.")
-            continue
+        print(f"Video {tweet_id} age: {time_diff}. Adding to queue regardless of age as fallback.")
             
         # Parse timestamp
         dt = v.get('parsed_datetime', datetime.now(timezone.utc))
