@@ -41,6 +41,20 @@ def run_single_sequence():
     # Save to history immediately to prevent infinite retry loops if edit/upload fails
     save_to_history(task_id)
     
+    # IMMEDIATELY push to GitHub so if the user triggers another run during the 15-minute sleep, it won't duplicate!
+    print("Pushing history to GitHub immediately to prevent race conditions...")
+    try:
+        import subprocess
+        subprocess.run("git config --global user.name 'github-actions[bot]'", shell=True)
+        subprocess.run("git config --global user.email 'github-actions[bot]@users.noreply.github.com'", shell=True)
+        subprocess.run("git add downloaded_history.txt temp/daily_limits.json", shell=True)
+        subprocess.run("git commit -m 'Update history (mid-run)'", shell=True)
+        subprocess.run("git pull --rebase --strategy-option=ours", shell=True)
+        subprocess.run("git push", shell=True)
+        print("History pushed successfully.")
+    except Exception as e:
+        print(f"Warning: Mid-run history push failed: {e}")
+    
     # 2. Edit
     report_edit_start()
     try:
