@@ -1,8 +1,9 @@
 import os
 import json
-import asyncio
+import urllib.request
+import xml.etree.ElementTree as ET
 from datetime import datetime, timezone, timedelta
-from playwright.async_api import async_playwright
+from email.utils import parsedate_to_datetime
 import yt_dlp
 from dotenv import load_dotenv
 
@@ -19,8 +20,8 @@ def save_to_history(video_id):
     with open(HISTORY_FILE, 'a') as f:
         f.write(f"{video_id}\n")
 
-async def search_and_download_latest_video():
-    print("Searching Twitter (X) for new videos posted in the last 2 hours...")
+def search_and_download_latest_video():
+    print("Searching Twitter (via Nitter RSS) for new videos posted in the last 2 hours...")
     
     stats = {
         "profiles_scanned": 0,
@@ -35,18 +36,28 @@ async def search_and_download_latest_video():
         profiles = [p.strip() for p in profiles_str.split(',') if p.strip()]
     else:
         profiles = [
-            "https://x.com/WorldCupMedia",
-            "https://x.com/Waleedahmdd",
-            "https://x.com/FIFAWC26Updates",
-            "https://x.com/FIFAcom",
-            "https://x.com/SkyFootball",
-            "https://x.com/TheSunFootball",
-            "https://x.com/footballontnt",
-            "https://x.com/TrollFootball",
-            "https://x.com/Footballtweet",
-            "https://x.com/FBAwayDays"
+            "WorldCupMedia",
+            "Waleedahmdd",
+            "FIFAWC26Updates",
+            "FIFAcom",
+            "SkyFootball",
+            "TheSunFootball",
+            "footballontnt",
+            "TrollFootball",
+            "Footballtweet",
+            "FBAwayDays"
         ]
-    
+        
+    # Clean profiles to just usernames if they are full URLs
+    usernames = []
+    for p in profiles:
+        if "x.com/" in p:
+            usernames.append(p.split("x.com/")[-1].strip("/"))
+        elif "twitter.com/" in p:
+            usernames.append(p.split("twitter.com/")[-1].strip("/"))
+        else:
+            usernames.append(p)
+            
     history = load_history()
     
     ydl_opts_download = {
@@ -58,99 +69,111 @@ async def search_and_download_latest_video():
     time_limit = datetime.now(timezone.utc) - timedelta(hours=2)
     print(f"Time limit is set to: {time_limit.isoformat()}")
     
-    async with async_playwright() as p:
-        browser = await p.chromium.launch(headless=True)
-        context = await browser.new_context(viewport={'width': 1920, 'height': 1080})
-        page = await context.new_page()
+    nitter_instances = [
+        "https://nitter.net",
+        "https://nitter.privacydev.net",
+        "https://nitter.poast.org"
+    ]
+    
+    for username in usernames:
+        stats["profiles_scanned"] += 1
+        print(f"--------------------------------------------------")
+        print(f"Checking profile: {username}")
         
-        for profile in profiles:
-            print(f"--------------------------------------------------")
-            print(f"Checking profile: {profile}")
+        rss_fetched = False
+        items = []
+        for instance in nitter_instances:
+            url = f"{instance}/{username}/rss"
             try:
-                await page.goto(profile, timeout=30000)
-                await page.wait_for_selector("article", timeout=15000)
-                await page.wait_for_timeout(3000) # Wait for videos to load
-                
-                # Fetch articles
-                articles = await page.query_selector_all("article")
-                for article in articles:
-                    html = await article.inner_html()
-                    
-                    # 1. Check if it's a video
-                    if "<video" in html or "playback" in html:
-                        # 2. Extract link and exact timestamp via Snowflake ID
-                        links = await article.query_selector_all("a[href*='/status/']")
-                        tweet_url = None
-                        tweet_id = None
-                        
-                        for link in links:
-                            href = await link.get_attribute("href")
-                            if href and "/status/" in href and "photo" not in href:
-                                tweet_url = f"https://x.com{href}" if href.startswith("/") else href
-                                tweet_id = tweet_url.split("/status/")[1].split("/")[0].split("?")[0]
-                                break
-                                
-                        stats["profiles_scanned"] += 1
-                        
-                        if not tweet_id or not tweet_url:
-                            continue
-                            
-                        # Calculate exact post time using Twitter Snowflake ID formula
-                        try:
-                            # Formula: (tweet_id >> 22) + 1288834974657 = timestamp in ms
-                            timestamp_ms = (int(tweet_id) >> 22) + 1288834974657
-                            post_time = datetime.fromtimestamp(timestamp_ms / 1000, timezone.utc)
-                            
-                            if post_time < time_limit:
-                                continue
-                                
-                            # It is a recent video
-                            stats["new_videos_found"] += 1
-                            
-                            if tweet_id in history:
-                                print(f"Video {tweet_id} already in history, skipping...")
-                                stats["videos_skipped"] += 1
-                                continue
-                                
-                            print(f"Selected valid NEW video within 2 hours: {tweet_url}")
-                        except ValueError:
-                            print("Invalid tweet ID format. Skipping.")
-                            continue
-                                
-                        # Use yt-dlp to download it
-                        try:
-                            os.makedirs('workspace', exist_ok=True)
-                            filename = "workspace/raw_video.mp4"
-                            if os.path.exists(filename):
-                                os.remove(filename)
-                                
-                            print(f"Downloading with yt-dlp...")
-                            with yt_dlp.YoutubeDL(ydl_opts_download) as ydl:
-                                info = ydl.extract_info(tweet_url, download=True)
-                                title = info.get('title', f"Twitter Video {tweet_id}")
-                                
-                            meta = {
-                                "title": title,
-                                "source_url": tweet_url,
-                                "video_id": tweet_id
-                            }
-                            with open("workspace/meta.json", "w") as f:
-                                json.dump(meta, f)
-                                
-                            await browser.close()
-                            stats["videos_downloaded"] += 1
-                            return filename, title, tweet_id, tweet_url, tweet_url, stats
-                            
-                        except Exception as e:
-                            print(f"Error downloading {tweet_url}: {e}")
-                            stats["errors"].append(f"Download Error for {tweet_url}: {str(e)}")
-                            pass
+                req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'})
+                with urllib.request.urlopen(req, timeout=15) as response:
+                    xml_data = response.read()
+                    root = ET.fromstring(xml_data)
+                    items = root.findall('.//item')
+                    rss_fetched = True
+                    break
             except Exception as e:
-                print(f"Error checking profile {profile}: {e}")
-                stats["errors"].append(f"Profile Error for {profile}: {str(e)}")
+                print(f"Failed to fetch {url}: {e}")
                 
-        await browser.close()
-        
+        if not rss_fetched:
+            print(f"Could not fetch RSS for {username} on any Nitter instance.")
+            stats["errors"].append(f"RSS Fetch Error for {username}")
+            continue
+            
+        for item in items:
+            title = item.find('title').text if item.find('title') is not None else ""
+            link = item.find('link').text if item.find('link') is not None else ""
+            pubDate_str = item.find('pubDate').text if item.find('pubDate') is not None else ""
+            desc = item.find('description').text if item.find('description') is not None else ""
+            
+            if not link or not pubDate_str:
+                continue
+                
+            # 1. Check if it's a video
+            if ">Video<" not in desc and "Video" not in desc:
+                continue
+                
+            # 2. Extract tweet ID and check history
+            try:
+                # Link is usually https://nitter.net/username/status/123456789#m
+                tweet_id = link.split("/status/")[1].split("#")[0].split("?")[0]
+            except Exception:
+                continue
+                
+            # 3. Check exact post time
+            try:
+                post_time = parsedate_to_datetime(pubDate_str)
+                if post_time.tzinfo is None:
+                    post_time = post_time.replace(tzinfo=timezone.utc)
+            except Exception as e:
+                print(f"Error parsing date {pubDate_str}: {e}")
+                continue
+                
+            if post_time < time_limit:
+                # Since RSS is chronological, if we hit an old one, we can stop checking this profile.
+                print(f"Post {tweet_id} is older than 2 hours. Moving to next profile.")
+                break
+                
+            # It is a recent video
+            stats["new_videos_found"] += 1
+            
+            if tweet_id in history:
+                print(f"Video {tweet_id} already in history, skipping...")
+                stats["videos_skipped"] += 1
+                continue
+                
+            original_tweet_url = f"https://x.com/{username}/status/{tweet_id}"
+            print(f"Selected valid NEW video within 2 hours: {original_tweet_url}")
+            
+            # Use yt-dlp to download it
+            try:
+                os.makedirs('workspace', exist_ok=True)
+                filename = "workspace/raw_video.mp4"
+                if os.path.exists(filename):
+                    os.remove(filename)
+                    
+                print(f"Downloading with yt-dlp...")
+                with yt_dlp.YoutubeDL(ydl_opts_download) as ydl:
+                    info = ydl.extract_info(original_tweet_url, download=True)
+                    clean_title = info.get('title', f"Twitter Video {tweet_id}")
+                    
+                meta = {
+                    "title": clean_title,
+                    "source_url": original_tweet_url,
+                    "video_id": tweet_id
+                }
+                with open("workspace/meta.json", "w") as f:
+                    json.dump(meta, f)
+                    
+                stats["videos_downloaded"] += 1
+                return filename, clean_title, tweet_id, original_tweet_url, original_tweet_url, stats
+                
+            except Exception as e:
+                print(f"Error downloading {original_tweet_url}: {e}")
+                stats["errors"].append(f"Download Error for {original_tweet_url}: {str(e)}")
+                # Try next article
+                pass
+                
     print("--------------------------------------------------")
     print("No new valid videos found across all profiles within the last 2 hours.")
     return None, None, None, None, None, stats
@@ -159,7 +182,7 @@ def run_downloader():
     print("Starting Agent 1: X (Twitter) Downloader")
     os.makedirs('workspace', exist_ok=True)
     
-    result = asyncio.run(search_and_download_latest_video())
+    result = search_and_download_latest_video()
     if result and len(result) == 6:
         video_path, title, tweet_id, source_url, video_url, stats = result
     else:
