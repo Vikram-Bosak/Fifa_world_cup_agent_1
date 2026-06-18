@@ -31,22 +31,19 @@ def search_and_download_latest_video():
         "errors": []
     }
     
-    profiles_str = os.getenv("X_PROFILES", "")
-    if profiles_str:
-        profiles = [p.strip() for p in profiles_str.split(',') if p.strip()]
-    else:
-        profiles = [
-            "WorldCupMedia",
-            "Waleedahmdd",
-            "FIFAWC26Updates",
-            "FIFAcom",
-            "SkyFootball",
-            "TheSunFootball",
-            "footballontnt",
-            "TrollFootball",
-            "Footballtweet",
-            "FBAwayDays"
-        ]
+    # Hardcoded 10 profiles as requested by the user
+    profiles = [
+        "https://x.com/WorldCupMedia_",
+        "https://x.com/Waleedahmdd",
+        "https://x.com/FIFAWC26Updates",
+        "https://x.com/FIFAcom",
+        "https://x.com/SkyFootball",
+        "https://x.com/TheSunFootball",
+        "https://x.com/footballontnt",
+        "https://x.com/TrollFootball",
+        "https://x.com/Footballtweet",
+        "https://x.com/FBAwayDays"
+    ]
         
     # Clean profiles to just usernames if they are full URLs
     usernames = []
