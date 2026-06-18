@@ -7,7 +7,7 @@ sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 from src.agent_1_downloader import run_downloader
 from src.agent_2_editor import process_video
 from src.agent_3_uploader import run_upload
-from src.common.limits import can_download, can_upload, increment_download, increment_edit
+from src.common.limits import can_download, can_upload, increment_download, increment_edit, increment_upload
 from src.common.telegram import (
     report_final_summary, 
     report_download_start, 
