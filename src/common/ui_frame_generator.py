@@ -45,81 +45,63 @@ def generate_ui_frame(output_path: str, source_name: str, headline: str, story: 
     with Pilmoji(img) as pilmoji:
         start_y = height - bottom_bar_height + 25
         
-        # Main Headline
+        # --- Main Headline ---
         try:
-            f_sub = ImageFont.truetype(font_bold, 35)
+            f_sub = ImageFont.truetype(font_bold, 38)
         except IOError:
             f_sub = ImageFont.load_default()
             
         headline_text = headline.strip() if headline else ""
         pilmoji.text((30, start_y), headline_text, fill=white, font=f_sub)
         
-        start_y += 55
+        start_y += 60
         
-        # User Avatar and Name
-        avatar_y = start_y
-        avatar_size = 50
-        draw.ellipse([30, avatar_y, 30+avatar_size, avatar_y+avatar_size], fill=(30, 30, 30, 255))
+        # --- Description and Hashtags ---
+        story_text = story if story else "The national team arrives to a massive crowd ahead of their crucial match! Can they go all the way?"
         
-        # Draw logo inside circle if exists
-        if os.path.exists(top_banner_path):
-            try:
-                logo_img = Image.open(top_banner_path).convert("RGBA")
-                # Crop a square from the left side of the banner (where the logo usually is)
-                logo_square = logo_img.crop((0, 0, logo_img.height, logo_img.height))
-                logo_resized = logo_square.resize((avatar_size, avatar_size), Image.LANCZOS)
-                
-                # Make circular mask
-                mask = Image.new('L', (avatar_size, avatar_size), 0)
-                mask_draw = ImageDraw.Draw(mask)
-                mask_draw.ellipse((0, 0, avatar_size, avatar_size), fill=255)
-                
-                img.paste(logo_resized, (30, avatar_y), mask)
-            except:
-                pass
-                
-        try:
-            f_user = ImageFont.truetype(font_bold, 25)
-        except IOError:
-            f_user = ImageFont.load_default()
-            
-        pilmoji.text((90, avatar_y + 10), "Hollywood Insider ⚙️", fill=white, font=f_user)
+        # Extract hashtags and clean story text
+        words = story_text.split()
+        hashtags = [w for w in words if w.startswith('#')]
+        clean_story = " ".join([w for w in words if not w.startswith('#')])
         
-        start_y += 70
-        
-        # Story
-        story_text = story if story else "History hides in the details. 👀 Did you spot this iconic World Cup moment? Drop a comment if you saw it! 🏆👇"
-        story_lines = textwrap.wrap(story_text, width=70)
+        story_lines = textwrap.wrap(clean_story, width=72)
         
         try:
-            f_story = ImageFont.truetype(font_reg, 26)
-            f_story_bold = ImageFont.truetype(font_bold, 26)
+            f_story = ImageFont.truetype(font_reg, 30)
+            f_story_bold = ImageFont.truetype(font_bold, 30)
         except IOError:
             f_story = ImageFont.load_default()
             f_story_bold = ImageFont.load_default()
             
-        for line in story_lines[:2]: # Max 2 lines to fit space
+        for line in story_lines[:3]: # Max 3 lines for description
             pilmoji.text((30, start_y), line, fill=white, font=f_story)
-            start_y += 35
+            start_y += 42
             
-        # See more
-        pilmoji.text((30, start_y), "#... See more", fill=white, font=f_story_bold)
+        # Draw hashtags on a new line with lighter color
+        if hashtags:
+            hashtag_text = " ".join(hashtags)
+            pilmoji.text((30, start_y), hashtag_text, fill=(160, 176, 192, 255), font=f_story)
+            start_y += 45
             
-        # Separator Line
+        # --- Separator Line ---
         sep_y = height - 100
         draw.line([(25, sep_y), (width - 25, sep_y)], fill=line_color, width=2)
+        
+        # --- 'Tap or hold...' Hint Text ---
+        try:
+            f_hint = ImageFont.truetype(font_reg, 22)
+        except IOError:
+            f_hint = ImageFont.load_default()
+            
+        hint_text = "Tap or hold to like and react with Love, Haha, Wow, or Sad!"
+        hint_w = pilmoji.getsize(hint_text, font=f_hint)[0]
+        # Align to the right side, just above the separator line
+        pilmoji.text((width - hint_w - 30, sep_y - 35), hint_text, fill=(200, 200, 200, 255), font=f_hint)
         
         # --- ENGAGEMENT BAR ---
         engage_y = height - 80
         
-        # 'Tap or hold...' hint text
-        try:
-            f_hint = ImageFont.truetype(font_reg, 20)
-        except IOError:
-            f_hint = ImageFont.load_default()
-        pilmoji.text((490, engage_y - 20), "Tap or hold to like and react with Love, Haha, Wow, or Sad!", fill=(200, 200, 200, 255), font=f_hint)
-        
-        # overlapping emojis
+        # Overlapping emojis
         draw.ellipse([30, engage_y, 30+40, engage_y+40], fill=(24,119,242,255))
         draw.ellipse([55, engage_y, 55+40, engage_y+40], fill=(240,40,73,255))
         draw.ellipse([80, engage_y, 80+40, engage_y+40], fill=(247,177,37,255))
@@ -139,15 +121,14 @@ def generate_ui_frame(output_path: str, source_name: str, headline: str, story: 
         
         # --- VIDEO CREDIT OVERLAY ---
         # Draw on the transparent area so it overlays on the video
-        credit_text = "Video Credit: Hollywood News"
+        credit_text = "Video Credit: FIFA World Cup™"
         try:
             f_credit = ImageFont.truetype(font_bold, 35)
         except IOError:
             f_credit = ImageFont.load_default()
             
         credit_w = pilmoji.getsize(credit_text, font=f_credit)[0]
-        # Position at bottom right of the video area (video ends at y=1100 - bottom_bar_height)
-        # bottom_bar_height is 340. y_video_end = 1440 - 340 = 1100.
+        # Position at bottom right of the video area
         credit_x = width - credit_w - 30
         credit_y = height - bottom_bar_height - 50
         
@@ -155,7 +136,7 @@ def generate_ui_frame(output_path: str, source_name: str, headline: str, story: 
         shadow_color = (0, 0, 0, 200)
         for offset in [(2,2), (-2,-2), (2,-2), (-2,2), (0,2), (2,0), (-2,0), (0,-2)]:
             pilmoji.text((credit_x + offset[0], credit_y + offset[1]), credit_text, fill=shadow_color, font=f_credit)
-        pilmoji.text((credit_x, credit_y), credit_text, fill=white, font=f_credit)
+        pilmoji.text((credit_x, credit_y), credit_text, fill=(230, 230, 230, 255), font=f_credit)
         
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
     img.save(output_path, "PNG")
