@@ -190,7 +190,8 @@ def report_final_summary(summary_data: dict, stats: dict = None):
     uploaded = stats.get('videos_uploaded', 0)
     errors = stats.get('errors', [])
     
-    error_text = "\n".join([f"❌ {e}" for e in errors]) if errors else "None"
+    import html
+    error_text = html.escape("\n".join([f"❌ {e}" for e in errors]) if errors else "None")
     
     run_id = os.environ.get("GITHUB_RUN_ID", "")
     repo_name = os.environ.get("GITHUB_REPOSITORY", "Vikram-Bosak/Fifa_world_cup_agent_1")
