@@ -72,6 +72,8 @@ def search_and_download_latest_video():
         "https://nitter.poast.org"
     ]
     
+    valid_videos = []
+    
     for username in usernames:
         stats["profiles_scanned"] += 1
         print(f"--------------------------------------------------")
@@ -140,39 +142,56 @@ def search_and_download_latest_video():
                 continue
                 
             original_tweet_url = f"https://x.com/{username}/status/{tweet_id}"
-            print(f"Selected valid NEW video within 3 hours: {original_tweet_url}")
+            valid_videos.append({
+                "tweet_id": tweet_id,
+                "url": original_tweet_url,
+                "post_time": post_time
+            })
             
-            # Use yt-dlp to download it
-            try:
-                os.makedirs('workspace', exist_ok=True)
-                filename = "workspace/raw_video.mp4"
-                if os.path.exists(filename):
-                    os.remove(filename)
-                    
-                print(f"Downloading with yt-dlp...")
-                with yt_dlp.YoutubeDL(ydl_opts_download) as ydl:
-                    info = ydl.extract_info(original_tweet_url, download=True)
-                    clean_title = info.get('title', f"Twitter Video {tweet_id}")
-                    
-                meta = {
-                    "title": clean_title,
-                    "source_url": original_tweet_url,
-                    "video_id": tweet_id
-                }
-                with open("workspace/meta.json", "w") as f:
-                    json.dump(meta, f)
-                    
-                stats["videos_downloaded"] += 1
-                return filename, clean_title, tweet_id, original_tweet_url, original_tweet_url, stats
-                
-            except Exception as e:
-                print(f"Error downloading {original_tweet_url}: {e}")
-                stats["errors"].append(f"Download Error for {original_tweet_url}: {str(e)}")
-                # Try next article
-                pass
-                
     print("--------------------------------------------------")
-    print("No new valid videos found across all profiles within the last 3 hours.")
+    if not valid_videos:
+        print("No new valid videos found across all profiles within the last 3 hours.")
+        return None, None, None, None, None, stats
+        
+    # Sort valid videos by post_time (oldest first) to ensure chronological uploading
+    valid_videos.sort(key=lambda x: x["post_time"])
+    
+    for video in valid_videos:
+        tweet_id = video["tweet_id"]
+        original_tweet_url = video["url"]
+        
+        print(f"Selected valid NEW video: {original_tweet_url}")
+        
+        # Use yt-dlp to download it
+        try:
+            os.makedirs('workspace', exist_ok=True)
+            filename = "workspace/raw_video.mp4"
+            if os.path.exists(filename):
+                os.remove(filename)
+                
+            print(f"Downloading with yt-dlp...")
+            with yt_dlp.YoutubeDL(ydl_opts_download) as ydl:
+                info = ydl.extract_info(original_tweet_url, download=True)
+                clean_title = info.get('title', f"Twitter Video {tweet_id}")
+                
+            meta = {
+                "title": clean_title,
+                "source_url": original_tweet_url,
+                "video_id": tweet_id
+            }
+            with open("workspace/meta.json", "w") as f:
+                json.dump(meta, f)
+                
+            stats["videos_downloaded"] += 1
+            return filename, clean_title, tweet_id, original_tweet_url, original_tweet_url, stats
+            
+        except Exception as e:
+            print(f"Error downloading {original_tweet_url}: {e}")
+            stats["errors"].append(f"Download Error for {original_tweet_url}: {str(e)}")
+            # If download fails, try the next video in the queue
+            continue
+
+    print("Failed to download any of the found videos.")
     return None, None, None, None, None, stats
 
 def run_downloader():
