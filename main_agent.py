@@ -38,6 +38,9 @@ def run_single_sequence():
     send_message(f"🆔 <b>Unique ID generated:</b> {task_id}")
     increment_download()
     
+    # Save to history immediately to prevent infinite retry loops if edit/upload fails
+    save_to_history(task_id)
+    
     # 2. Edit
     report_edit_start()
     try:
@@ -66,7 +69,6 @@ def run_single_sequence():
     if video_data.get('upload_status') == 'Success':
         increment_upload()
         stats["videos_uploaded"] = 1
-        save_to_history(video_data['id'])
     
     # Final Report
     report_final_summary(video_data, stats)
