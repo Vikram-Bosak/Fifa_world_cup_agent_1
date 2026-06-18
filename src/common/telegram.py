@@ -207,20 +207,22 @@ def report_final_summary(summary_data: dict, stats: dict = None):
         send_message(msg)
         return
 
+    import html
+    
     # Determine success status
-    job_status = summary_data.get('job_status', 'Success')
-    fb_url = summary_data.get('fb_url', 'N/A')
-    yt_url = summary_data.get('yt_url', 'N/A')
+    job_status = html.escape(str(summary_data.get('job_status', 'Success')))
+    fb_url = html.escape(str(summary_data.get('fb_url', 'N/A')))
+    yt_url = html.escape(str(summary_data.get('yt_url', 'N/A')))
     
-    fb_err = summary_data.get('fb_err', 'Unknown Error')
-    yt_err = summary_data.get('yt_err', 'Unknown Error')
+    fb_err = html.escape(str(summary_data.get('fb_err', 'Unknown Error')))
+    yt_err = html.escape(str(summary_data.get('yt_err', 'Unknown Error')))
     
-    fb_status = "Success" if fb_url not in ["Failed", "N/A", None] else f"Failed ({fb_err})"
-    yt_status = "Success" if yt_url not in ["Failed", "N/A", None] else f"Failed ({yt_err})"
+    fb_status = "Success" if fb_url not in ["Failed", "N/A", "None", None] else f"Failed ({fb_err})"
+    yt_status = "Success" if yt_url not in ["Failed", "N/A", "None", None] else f"Failed ({yt_err})"
     
-    title = summary_data.get('title', 'Automated FIFA World Cup Reel')
-    description = summary_data.get('description', '')
-    original_file = summary_data.get('local_path', 'unknown_video.mp4')
+    title = html.escape(str(summary_data.get('title', 'Automated FIFA World Cup Reel')))
+    description = html.escape(str(summary_data.get('description', '')))
+    original_file = html.escape(str(summary_data.get('local_path', 'unknown_video.mp4')))
     
     msg = (
         f"✅ <b>Upload Successfully Completed</b>\n\n"
