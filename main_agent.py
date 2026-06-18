@@ -4,7 +4,7 @@ import time
 
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
-from src.agent_1_downloader import run_downloader
+from src.agent_1_downloader import run_downloader, save_to_history
 from src.agent_2_editor import process_video
 from src.agent_3_uploader import run_upload
 from src.common.limits import can_download, can_upload, increment_download, increment_edit, increment_upload
@@ -26,10 +26,10 @@ def run_single_sequence():
 
     # 1. Download
     report_download_start()
-    video_data = run_downloader()
+    video_data, stats = run_downloader()
     if not video_data:
         print("No video found.")
-        send_message("⚠️ <b>Download Skipped:</b> No new videos found in any of the X (Twitter) profiles in the last 5 years.")
+        report_final_summary({}, stats)
         return False
         
     task_id = video_data['id']
@@ -46,12 +46,17 @@ def run_single_sequence():
         if video_data.get('editing_status') == 'Success':
             report_edit_complete()
             increment_edit()
+            stats["videos_edited"] = 1
         else:
             send_message(f"❌ <b>Editing Failed for {task_id}</b>")
+            stats["errors"].append(f"Editing Failed for {task_id}")
+            report_final_summary(video_data, stats)
             return False
     except Exception as e:
         print(f"Editing failed: {e}")
         send_message(f"❌ <b>Editing Failed for {task_id}:</b>\n{e}")
+        stats["errors"].append(f"Editing Exception: {str(e)}")
+        report_final_summary(video_data, stats)
         return False
         
     # 3. Upload
@@ -60,9 +65,11 @@ def run_single_sequence():
     
     if video_data.get('upload_status') == 'Success':
         increment_upload()
+        stats["videos_uploaded"] = 1
+        save_to_history(video_data['id'])
     
     # Final Report
-    report_final_summary(video_data)
+    report_final_summary(video_data, stats)
     
     print("Pipeline run completed.")
     return True

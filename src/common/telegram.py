@@ -176,7 +176,37 @@ def report_upload_complete(platform: str, url: str, title: str, description: str
     )
     send_message(msg)
 
-def report_final_summary(summary_data: dict):
+def report_final_summary(summary_data: dict, stats: dict = None):
+    stats = stats or {}
+    profiles_scanned = stats.get('profiles_scanned', 0)
+    new_videos = stats.get('new_videos_found', 0)
+    skipped = stats.get('videos_skipped', 0)
+    downloaded = stats.get('videos_downloaded', 0)
+    edited = stats.get('videos_edited', 0)
+    uploaded = stats.get('videos_uploaded', 0)
+    errors = stats.get('errors', [])
+    
+    error_text = "\n".join([f"❌ {e}" for e in errors]) if errors else "None"
+    
+    run_id = os.environ.get("GITHUB_RUN_ID", "")
+    repo_name = os.environ.get("GITHUB_REPOSITORY", "Vikram-Bosak/Fifa_world_cup_agent_1")
+    workflow_url = f"https://github.com/{repo_name}/actions/runs/{run_id}" if run_id else f"https://github.com/{repo_name}/actions"
+    repo_url = f"https://github.com/{repo_name}"
+    
+    if not summary_data:
+        # Just send the stats report if no video was fully processed
+        msg = (
+            f"ℹ️ <b>Pipeline Scan Report</b>\n\n"
+            f"🔍 <b>Profiles Scanned:</b> {profiles_scanned}\n"
+            f"🆕 <b>New Videos Found (Last 2 hours):</b> {new_videos}\n"
+            f"⏭️ <b>Videos Skipped (Already Processed):</b> {skipped}\n"
+            f"📥 <b>Videos Downloaded:</b> {downloaded}\n\n"
+            f"⚠️ <b>Errors:</b>\n{error_text}\n\n"
+            f"📄 <b>Workflow Run:</b>\n{workflow_url}"
+        )
+        send_message(msg)
+        return
+
     # Determine success status
     job_status = summary_data.get('job_status', 'Success')
     fb_url = summary_data.get('fb_url', 'N/A')
@@ -185,42 +215,28 @@ def report_final_summary(summary_data: dict):
     fb_err = summary_data.get('fb_err', 'Unknown Error')
     yt_err = summary_data.get('yt_err', 'Unknown Error')
     
-    fb_status = "Success" if fb_url not in ["Failed", "N/A"] else f"Failed ({fb_err})"
-    yt_status = "Success" if yt_url not in ["Failed", "N/A"] else f"Failed ({yt_err})"
+    fb_status = "Success" if fb_url not in ["Failed", "N/A", None] else f"Failed ({fb_err})"
+    yt_status = "Success" if yt_url not in ["Failed", "N/A", None] else f"Failed ({yt_err})"
     
     title = summary_data.get('title', 'Automated FIFA World Cup Reel')
     description = summary_data.get('description', '')
-    original_file = summary_data.get('original_file', 'unknown_video.mp4')
-    
-    run_id = os.environ.get("GITHUB_RUN_ID", "")
-    repo_name = os.environ.get("GITHUB_REPOSITORY", "Vikram-Bosak/Fifa_world_cup_agent_1")
-    workflow_url = f"https://github.com/{repo_name}/actions/runs/{run_id}" if run_id else f"https://github.com/{repo_name}/actions"
-    repo_url = f"https://github.com/{repo_name}"
+    original_file = summary_data.get('local_path', 'unknown_video.mp4')
     
     msg = (
-        f"✅ <b>Upload Successfully Completed</b>\n"
-        f"🎬 <b>Video Name:</b>\n"
-        f"{original_file}\n\n"
-        f"✅ DOWNLOADED\n"
-        f"✏️ EDITED\n"
-        f"📅 SCHEDULED\n"
-        f"🚀 UPLOADED\n"
-        f"✔️ COMPLETED\n\n"
-        f"📤 <b>Facebook Upload Status:</b> {fb_status}\n"
-        f"📤 <b>YouTube Upload Status:</b> {yt_status}\n\n"
-        f"🏷️ <b>SEO Title:</b>\n"
-        f"{title}\n\n"
-        f"📝 <b>Description:</b>\n"
-        f"{description}\n\n"
-        f"Original Title: {original_file}\n"
-        f"Source: {original_file}\n\n"
-        f"🔗 <b>Facebook Reel URL:</b>\n"
-        f"{fb_url}\n\n"
-        f"▶️ <b>YouTube Video URL:</b>\n"
-        f"{yt_url}\n\n"
-        f"📦 <b>GitHub Repository:</b>\n"
-        f"{repo_url}\n\n"
-        f"📄 <b>Workflow Run:</b>\n"
-        f"{workflow_url}"
+        f"✅ <b>Upload Successfully Completed</b>\n\n"
+        f"📊 <b>Session Statistics:</b>\n"
+        f"🔍 Profiles Scanned: {profiles_scanned}\n"
+        f"🆕 New Videos (2h): {new_videos}\n"
+        f"⏭️ Videos Skipped: {skipped}\n"
+        f"📥 Downloaded: {downloaded}\n"
+        f"✏️ Edited: {edited}\n"
+        f"🚀 Uploaded: {uploaded}\n\n"
+        f"⚠️ <b>Errors:</b>\n{error_text}\n\n"
+        f"📤 <b>Facebook Status:</b> {fb_status}\n"
+        f"📤 <b>YouTube Status:</b> {yt_status}\n\n"
+        f"🏷️ <b>SEO Title:</b>\n{title}\n\n"
+        f"🔗 <b>Facebook Reel URL:</b>\n{fb_url}\n\n"
+        f"▶️ <b>YouTube Video URL:</b>\n{yt_url}\n\n"
+        f"📄 <b>Workflow Run:</b>\n{workflow_url}"
     )
     send_message(msg)

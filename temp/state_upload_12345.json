@@ -1,0 +1,10 @@
+{
+    "id": "12345",
+    "title": "Test Title",
+    "local_path": "assets/fallback.mp4",
+    "source": "Test Source",
+    "category": "Highlight",
+    "short_headline": "Test Title",
+    "story": "Test Title",
+    "overlay_text": "EPIC FOOTBALL SKILLS"
+}
