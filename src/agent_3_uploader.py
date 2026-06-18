@@ -54,7 +54,15 @@ def run_upload(video_data):
     video_data["description"] = fb_caption
 
     delay_seconds = random.randint(0, 900) # 0 to 15 minutes
-    print(f"Waiting for {delay_seconds} seconds ({delay_seconds/60:.1f} minutes) before uploading to appear human...")
+    delay_minutes = delay_seconds / 60
+    print(f"Waiting for {delay_seconds} seconds ({delay_minutes:.1f} minutes) before uploading to appear human...")
+    
+    try:
+        from src.common.telegram import report_upload_delay
+        report_upload_delay(delay_minutes)
+    except Exception as e:
+        print(f"Failed to send delay report: {e}")
+        
     time.sleep(delay_seconds)
 
     # Facebook Upload

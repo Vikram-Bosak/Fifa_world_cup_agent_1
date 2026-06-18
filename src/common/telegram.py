@@ -166,6 +166,10 @@ def report_edit_complete():
     msg = f"✅ <b>Video Editing Completed</b>\n{get_run_details()}"
     send_message(msg)
 
+def report_upload_delay(delay_minutes: float):
+    msg = f"⏳ <b>Waiting for {delay_minutes:.1f} minutes</b> before uploading to simulate human behavior...\n{get_run_details()}"
+    send_message(msg)
+
 def report_upload_complete(platform: str, url: str, title: str, description: str):
     msg = (
         f"🚀 <b>{platform} Upload Completed</b>\n"
