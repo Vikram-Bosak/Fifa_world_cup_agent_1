@@ -134,7 +134,7 @@ def generate_upload_metadata(context: dict) -> dict:
     client = _get_client()
     if not client:
         print("Warning: NVIDIA_API_KEY not found. Using fallback SEO data.")
-        return _get_fallback_metadata()
+        return _get_fallback_metadata(context)
         
     prompt = f"""
     You are an expert FIFA World Cup and global football social media manager. Your task is to generate SEO metadata based STRICTLY on the original text context of the video.
@@ -175,19 +175,23 @@ def generate_upload_metadata(context: dict) -> dict:
         required_keys = ["title", "description", "facebook_caption", "hashtags", "tags"]
         for key in required_keys:
             if key not in data:
-                data[key] = _get_fallback_metadata()[key]
+                data[key] = _get_fallback_metadata(context)[key]
                 
         return data
 
     except Exception as e:
         print(f"Error calling NVIDIA LLM API for SEO: {e}")
-        return _get_fallback_metadata()
+        return _get_fallback_metadata(context)
 
-def _get_fallback_metadata():
+def _get_fallback_metadata(context=None):
+    if not context:
+        context = {}
+    original_title = context.get('title', 'Unbelievable Football Moment! ⚽🔥')
+    
     return {
-        "title": "Unbelievable Football Moment! ⚽🔥",
-        "description": "Witness this incredible highlight from the world of football! If you love the beautiful game, you have to see this. Don't forget to like and subscribe for daily World Cup and football updates! 🏆⚽",
-        "facebook_caption": "Wait for the end... you won't believe this incredible football moment! 🤯 Comment your thoughts below! 👇",
+        "title": original_title[:60],
+        "description": f"{original_title}\n\nWitness this incredible highlight from the world of football! If you love the beautiful game, you have to see this. Don't forget to like and subscribe for daily World Cup and football updates! 🏆⚽",
+        "facebook_caption": f"{original_title}\n\nWait for the end... Comment your thoughts below! 👇",
         "hashtags": "#FIFAWorldCup #Football #Soccer #Highlights #Viral",
         "tags": ["FIFA", "World Cup", "Football", "Soccer", "Highlights", "Sports"]
     }
