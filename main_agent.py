@@ -47,7 +47,8 @@ def run_single_sequence():
         import subprocess
         subprocess.run("git config --global user.name 'github-actions[bot]'", shell=True)
         subprocess.run("git config --global user.email 'github-actions[bot]@users.noreply.github.com'", shell=True)
-        subprocess.run("git add downloaded_history.txt temp/daily_limits.json", shell=True)
+        subprocess.run("git add downloaded_history.txt", shell=True)
+        subprocess.run("git add temp/daily_limits.json", shell=True)
         subprocess.run("git commit -m 'Update history (mid-run)'", shell=True)
         subprocess.run("git pull origin main --rebase --strategy-option=ours", shell=True)
         subprocess.run("git push origin HEAD:main", shell=True)
