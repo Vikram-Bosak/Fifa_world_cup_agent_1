@@ -198,7 +198,7 @@ def report_final_summary(summary_data: dict, stats: dict = None):
         msg = (
             f"ℹ️ <b>Pipeline Scan Report</b>\n\n"
             f"🔍 <b>Profiles Scanned:</b> {profiles_scanned}\n"
-            f"🆕 <b>New Videos Found (Last 2 hours):</b> {new_videos}\n"
+            f"🆕 <b>New Videos Found (Last 3 hours):</b> {new_videos}\n"
             f"⏭️ <b>Videos Skipped (Already Processed):</b> {skipped}\n"
             f"📥 <b>Videos Downloaded:</b> {downloaded}\n\n"
             f"⚠️ <b>Errors:</b>\n{error_text}\n\n"
