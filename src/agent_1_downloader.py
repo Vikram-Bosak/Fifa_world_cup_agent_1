@@ -20,7 +20,7 @@ def save_to_history(video_id):
         f.write(f"{video_id}\n")
 
 async def search_and_download_latest_video():
-    print("Searching Twitter (X) for new videos posted in the last 22 hours...")
+    print("Searching Twitter (X) for new videos posted in the last 6 hours...")
     
     profiles_str = os.getenv("X_PROFILES", "")
     if profiles_str:
@@ -47,7 +47,7 @@ async def search_and_download_latest_video():
         'quiet': False
     }
     
-    time_limit = datetime.now(timezone.utc) - timedelta(hours=2)
+    time_limit = datetime.now(timezone.utc) - timedelta(hours=6)
     print(f"Time limit is set to: {time_limit.isoformat()}")
     
     async with async_playwright() as p:
@@ -97,10 +97,10 @@ async def search_and_download_latest_video():
                             print(f"Tweet {tweet_id} posted at: {post_time.isoformat()}")
                             
                             if post_time < time_limit:
-                                print(f"Post is older than 2 hours. Skipping.")
+                                print(f"Post is older than 6 hours. Skipping.")
                                 continue
                                 
-                            print(f"Selected valid NEW video within 2 hours: {tweet_url}")
+                            print(f"Selected valid NEW video within 6 hours: {tweet_url}")
                         except ValueError:
                             print("Invalid tweet ID format. Skipping.")
                             continue
@@ -138,7 +138,7 @@ async def search_and_download_latest_video():
         await browser.close()
         
     print("--------------------------------------------------")
-    print("No new valid videos found across all profiles within the last 22 hours.")
+    print("No new valid videos found across all profiles within the last 6 hours.")
     return None, None, None, None, None
 
 def run_downloader():

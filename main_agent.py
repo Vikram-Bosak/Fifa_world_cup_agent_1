@@ -29,7 +29,7 @@ def run_single_sequence():
     video_data = run_downloader()
     if not video_data:
         print("No video found.")
-        send_message("⚠️ <b>Download Skipped:</b> No new videos found in any of the X (Twitter) profiles in the last 4 hours.")
+        send_message("⚠️ <b>Download Skipped:</b> No new videos found in any of the X (Twitter) profiles in the last 6 hours.")
         return False
         
     task_id = video_data['id']
