@@ -105,33 +105,33 @@ async def search_and_download_latest_video():
                             print("Invalid tweet ID format. Skipping.")
                             continue
                                 
-                                # Use yt-dlp to download it
-                                try:
-                                    os.makedirs('workspace', exist_ok=True)
-                                    filename = "workspace/raw_video.mp4"
-                                    if os.path.exists(filename):
-                                        os.remove(filename)
-                                        
-                                    print(f"Downloading with yt-dlp...")
-                                    with yt_dlp.YoutubeDL(ydl_opts_download) as ydl:
-                                        info = ydl.extract_info(tweet_url, download=True)
-                                        title = info.get('title', f"Twitter Video {tweet_id}")
-                                        
-                                    meta = {
-                                        "title": title,
-                                        "source_url": tweet_url,
-                                        "video_id": tweet_id
-                                    }
-                                    with open("workspace/meta.json", "w") as f:
-                                        json.dump(meta, f)
-                                        
-                                    await browser.close()
-                                    return filename, title, tweet_id, tweet_url, tweet_url
-                                    
-                                except Exception as e:
-                                    print(f"Error downloading {tweet_url}: {e}")
-                                    # Try next article
-                                    pass
+                        # Use yt-dlp to download it
+                        try:
+                            os.makedirs('workspace', exist_ok=True)
+                            filename = "workspace/raw_video.mp4"
+                            if os.path.exists(filename):
+                                os.remove(filename)
+                                
+                            print(f"Downloading with yt-dlp...")
+                            with yt_dlp.YoutubeDL(ydl_opts_download) as ydl:
+                                info = ydl.extract_info(tweet_url, download=True)
+                                title = info.get('title', f"Twitter Video {tweet_id}")
+                                
+                            meta = {
+                                "title": title,
+                                "source_url": tweet_url,
+                                "video_id": tweet_id
+                            }
+                            with open("workspace/meta.json", "w") as f:
+                                json.dump(meta, f)
+                                
+                            await browser.close()
+                            return filename, title, tweet_id, tweet_url, tweet_url
+                            
+                        except Exception as e:
+                            print(f"Error downloading {tweet_url}: {e}")
+                            # Try next article
+                            pass
             except Exception as e:
                 print(f"Error checking profile {profile}: {e}")
                 
