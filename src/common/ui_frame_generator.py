@@ -18,7 +18,7 @@ def generate_ui_frame(output_path: str, source_name: str, headline: str, story: 
     draw.rectangle([0, 0, width, height], outline=yellow, width=5)
     
     # 2. Draw Top Banner (Using extracted exact asset)
-    top_banner_path = os.path.join(os.path.dirname(__file__), "../assets/top_banner_extracted.png")
+    top_banner_path = os.path.join(os.path.dirname(__file__), "../../assets/top_banner_extracted.png")
     top_bar_height = 90
     if os.path.exists(top_banner_path):
         top_banner_img = Image.open(top_banner_path).convert("RGBA")
