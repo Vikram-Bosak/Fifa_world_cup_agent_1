@@ -32,8 +32,25 @@ def run_upload(video_data):
             os.remove(edited_video_path)
         return video_data
         
-    # Construct Facebook Caption
-    fb_caption = f"{headline}\n\n#hollywood #viral #entertainment\n\nOriginal Title: {title}\nSource: {source_url}"
+    # Construct Facebook Caption dynamically
+    try:
+        from src.common.seo_generator import generate_upload_metadata
+        task_id = video_data.get("id", "default")
+        state_file = f"temp/state_upload_{task_id}.json"
+        
+        if os.path.exists(state_file):
+            import json
+            with open(state_file, "r") as f:
+                context = json.load(f)
+        else:
+            context = video_data
+            
+        metadata = generate_upload_metadata(context)
+        fb_caption = f"{metadata.get('facebook_caption', headline)}\n\n{metadata.get('hashtags', '#FIFAWorldCup #Football')}\n\nSource: {source_url}"
+    except Exception as e:
+        print(f"Error generating dynamic SEO metadata: {e}")
+        fb_caption = f"{headline}\n\n#FIFAWorldCup #Football #Soccer\n\nSource: {source_url}"
+        
     video_data["description"] = fb_caption
 
     delay_seconds = 2

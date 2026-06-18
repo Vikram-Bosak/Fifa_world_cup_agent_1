@@ -86,21 +86,21 @@ def analyze_video_for_editing(context: dict) -> dict:
             context['deep_context'] = deep_context # Save for stage 2
             
     prompt = f"""
-    You are an expert Hollywood celebrity news editor and social media growth hacker. Your ONLY source of truth is the following original text from the downloaded video:
+    You are an expert FIFA World Cup and global football social media manager. Your ONLY source of truth is the following original text from the downloaded video:
     Original Title/Text: {context.get('title', 'Unknown')}
     Source Profile: {context.get('source', 'Unknown')}
     
     INSTRUCTIONS:
-    1. First, deeply analyze the "Original Title/Text". Understand the actual context, subject, and any hidden meaning.
-    2. Generate a "short_headline". This must be very short, impactful, and written strictly in ENGLISH. (e.g., "SHOCKING REVEAL! 😱"). Include 1 emoji.
-    3. Generate a "story". This is a short, 2-3 sentence paragraph explaining the context or building suspense, designed to make them watch the video. Include emojis. (e.g., "Nobody saw this coming on the red carpet! Do you agree with what happened? 👇 #Hollywood #CelebrityNews").
+    1. First, deeply analyze the "Original Title/Text". Understand the actual context, football players, teams, or match events mentioned.
+    2. Generate a "short_headline". This must be very short, impactful, and written strictly in ENGLISH. (e.g., "UNBELIEVABLE GOAL! ⚽"). Include 1 emoji.
+    3. Generate a "story". This is a short, 2-3 sentence paragraph explaining the context or building suspense, designed to make them watch the video. Include emojis. (e.g., "Nobody expected this to happen on the pitch! Do you think it was a foul? 👇").
     4. Keep it highly clickable. Ban generic, boring phrases.
-    5. Generate a "category" based on the real context.
+    5. Generate a "category" based on the real context (e.g., Highlight, Skill, News).
     
     Return strictly ONLY a valid JSON object:
     - "category": The accurate video category.
     - "short_headline": The short, impactful headline.
-    - "story": The contextual 2-3 sentence paragraph with hashtags.
+    - "story": The contextual 2-3 sentence paragraph.
     """
     
     try:
@@ -137,7 +137,7 @@ def generate_upload_metadata(context: dict) -> dict:
         return _get_fallback_metadata()
         
     prompt = f"""
-    You are an expert social media manager. Your task is to generate SEO metadata based STRICTLY on the original text context of the video.
+    You are an expert FIFA World Cup and global football social media manager. Your task is to generate SEO metadata based STRICTLY on the original text context of the video.
     
     ORIGINAL CONTEXT:
     Original Title/Text: {context.get('title', 'Unknown')}
@@ -146,13 +146,13 @@ def generate_upload_metadata(context: dict) -> dict:
     Headline Used in Video: {context.get('short_headline', '')}
     Story Used in Video: {context.get('story', '')}
     
-    CRITICAL INSTRUCTION: Analyze the Original Title/Text. What is it really about? Is it a meme? Is it about a specific historical event or conflict? You MUST generate the SEO Title, Description, and Hashtags to reflect this REAL context perfectly. Do NOT write generic soccer highlight text if the original text points to something else entirely.
+    CRITICAL INSTRUCTION: Analyze the Original Title/Text. What is it really about? Generate the SEO Title, Description, and Hashtags to reflect this REAL context perfectly. Ensure hashtags are related to football, soccer, FIFA, the teams, and the players mentioned. Do NOT use Hollywood or entertainment hashtags.
     
     Generate the following details and return ONLY a valid JSON object:
     - "title": A catchy, viral SEO title (under 60 characters) accurately reflecting the REAL original text context.
-    - "description": An engaging YouTube Shorts description targeting US audience, summarizing the actual subject matter derived from the original text.
-    - "facebook_caption": A short, punchy caption for Facebook Reels with a call to action based on the true context.
-    - "hashtags": A string of 5-7 highly relevant viral hashtags based on the true context (e.g., "#Viral #Meme").
+    - "description": An engaging YouTube Shorts description targeting global football fans, summarizing the actual subject matter derived from the original text.
+    - "facebook_caption": A short, punchy caption for Facebook Reels with a call to action based on the true context. Do NOT include hashtags in this field.
+    - "hashtags": A string of 5-7 highly relevant viral football hashtags based on the true context (e.g., "#FIFAWorldCup #Football #Soccer").
     - "tags": A list of 5-8 SEO tags (strings) for YouTube based on the real content.
     """
     
@@ -185,11 +185,11 @@ def generate_upload_metadata(context: dict) -> dict:
 
 def _get_fallback_metadata():
     return {
-        "title": "CRAZY HOLLYWOOD NEWS! 😱",
-        "description": "Check out this absolutely insane Hollywood celebrity update! If you love pop culture, you gotta see this. Don't forget to smash that like button and subscribe for daily viral news! 🇺🇸🔥",
-        "facebook_caption": "Wait for the end... you won't believe this celebrity moment! 🤯 Comment your thoughts below! 👇",
-        "hashtags": "#Hollywood #CelebrityNews #Viral #PopCulture",
-        "tags": ["Hollywood", "Celebrity News", "Pop Culture", "Entertainment", "Gossip"]
+        "title": "Unbelievable Football Moment! ⚽🔥",
+        "description": "Witness this incredible highlight from the world of football! If you love the beautiful game, you have to see this. Don't forget to like and subscribe for daily World Cup and football updates! 🏆⚽",
+        "facebook_caption": "Wait for the end... you won't believe this incredible football moment! 🤯 Comment your thoughts below! 👇",
+        "hashtags": "#FIFAWorldCup #Football #Soccer #Highlights #Viral",
+        "tags": ["FIFA", "World Cup", "Football", "Soccer", "Highlights", "Sports"]
     }
 
 if __name__ == "__main__":
