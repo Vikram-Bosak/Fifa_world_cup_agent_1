@@ -58,6 +58,9 @@ def run_single_sequence():
     print(f"Uploading Video {task_id}...")
     video_data = run_upload(video_data)
     
+    if video_data.get('upload_status') == 'Success':
+        increment_upload()
+    
     # Final Report
     report_final_summary(video_data)
     

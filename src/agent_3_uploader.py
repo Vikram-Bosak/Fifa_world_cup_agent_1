@@ -45,28 +45,30 @@ def run_upload(video_data):
         print(f"Uploading to Facebook with caption: {fb_caption}")
         fb_url = upload_reel(edited_video_path, fb_caption)
         print(f"Successfully uploaded to Facebook: {fb_url}")
-        
-        video_data["upload_status"] = "Success"
         video_data["fb_url"] = fb_url
     except Exception as e:
         print(f"Failed to upload to Facebook: {e}")
-        video_data["upload_status"] = "Failed"
         video_data["fb_err"] = str(e)
         
-    # YouTube Upload
-    if video_data.get("upload_status") == "Success":
-        try:
-            print("Waiting 2 seconds before uploading to YouTube Shorts...")
-            time.sleep(2)
-            
-            yt_title = title[:100] # YouTube title limit is 100 chars
-            yt_desc = f"{fb_caption}\n#shorts"
-            
-            yt_url = upload_to_youtube(edited_video_path, yt_title, yt_desc)
-            video_data["yt_url"] = yt_url
-        except Exception as e:
-            print(f"Failed to upload to YouTube: {e}")
-            video_data["yt_err"] = str(e)
+    # YouTube Upload (runs independently of Facebook)
+    try:
+        print("Waiting 2 seconds before uploading to YouTube Shorts...")
+        time.sleep(2)
+        
+        yt_title = title[:100] # YouTube title limit is 100 chars
+        yt_desc = f"{fb_caption}\n#shorts"
+        
+        yt_url = upload_to_youtube(edited_video_path, yt_title, yt_desc)
+        video_data["yt_url"] = yt_url
+    except Exception as e:
+        print(f"Failed to upload to YouTube: {e}")
+        video_data["yt_err"] = str(e)
+        
+    # Set overall status based on whether at least one upload succeeded
+    if video_data.get("fb_url") or video_data.get("yt_url"):
+        video_data["upload_status"] = "Success"
+    else:
+        video_data["upload_status"] = "Failed"
         
     # Cleanup
     if os.path.exists(edited_video_path):
