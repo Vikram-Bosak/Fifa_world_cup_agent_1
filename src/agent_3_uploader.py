@@ -53,8 +53,8 @@ def run_upload(video_data):
         
     video_data["description"] = fb_caption
 
-    delay_seconds = 2
-    print(f"Waiting for {delay_seconds} seconds before uploading...")
+    delay_seconds = random.randint(0, 900) # 0 to 15 minutes
+    print(f"Waiting for {delay_seconds} seconds ({delay_seconds/60:.1f} minutes) before uploading to appear human...")
     time.sleep(delay_seconds)
 
     # Facebook Upload

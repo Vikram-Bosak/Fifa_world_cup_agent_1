@@ -13,7 +13,7 @@ HISTORY_FILE = 'downloaded_history.txt'
 def load_history():
     if os.path.exists(HISTORY_FILE):
         with open(HISTORY_FILE, 'r') as f:
-            return set(f.read().splitlines())
+            return set(line.strip() for line in f if line.strip())
     return set()
 
 def save_to_history(video_id):
@@ -21,7 +21,7 @@ def save_to_history(video_id):
         f.write(f"{video_id}\n")
 
 def search_and_download_latest_video():
-    print("Searching Twitter (via Nitter RSS) for new videos posted in the last 2 hours...")
+    print("Searching Twitter (via Nitter RSS) for new videos posted in the last 3 hours...")
     
     stats = {
         "profiles_scanned": 0,
@@ -66,7 +66,7 @@ def search_and_download_latest_video():
         'quiet': False
     }
     
-    time_limit = datetime.now(timezone.utc) - timedelta(hours=2)
+    time_limit = datetime.now(timezone.utc) - timedelta(hours=3)
     print(f"Time limit is set to: {time_limit.isoformat()}")
     
     nitter_instances = [
@@ -131,7 +131,7 @@ def search_and_download_latest_video():
                 
             if post_time < time_limit:
                 # Since RSS is chronological, if we hit an old one, we can stop checking this profile.
-                print(f"Post {tweet_id} is older than 2 hours. Moving to next profile.")
+                print(f"Post {tweet_id} is older than 3 hours. Moving to next profile.")
                 break
                 
             # It is a recent video
@@ -143,7 +143,7 @@ def search_and_download_latest_video():
                 continue
                 
             original_tweet_url = f"https://x.com/{username}/status/{tweet_id}"
-            print(f"Selected valid NEW video within 2 hours: {original_tweet_url}")
+            print(f"Selected valid NEW video within 3 hours: {original_tweet_url}")
             
             # Use yt-dlp to download it
             try:
@@ -175,7 +175,7 @@ def search_and_download_latest_video():
                 pass
                 
     print("--------------------------------------------------")
-    print("No new valid videos found across all profiles within the last 2 hours.")
+    print("No new valid videos found across all profiles within the last 3 hours.")
     return None, None, None, None, None, stats
 
 def run_downloader():
