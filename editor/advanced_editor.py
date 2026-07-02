@@ -18,9 +18,9 @@ def get_video_dimensions(file_path):
         data = json.loads(result.stdout)
         stream = data['streams'][0]
         return int(stream['width']), int(stream['height'])
-    except Exception as e:
+    except (subprocess.TimeoutExpired, subprocess.CalledProcessError, json.JSONDecodeError, KeyError, Exception) as e:
         print(f"Error getting video dimensions: {e}")
-        return 1920, 1080 # fallback to horizontal
+        return 1920, 1080  # fallback to horizontal
 
 def edit_3_4_custom_layout_template(input_path: str, logo_path: str, output_path: str, headline: str = "VIRAL NEWS!", story: str = "", source_credit: str = "", safety_actions: list = None):
     print("Applying Custom Native Facebook Layout Template...")
@@ -45,9 +45,13 @@ def edit_3_4_custom_layout_template(input_path: str, logo_path: str, output_path
     
     has_audio = False
     try:
-        out = subprocess.check_output(["ffprobe", "-i", input_path, "-show_streams", "-select_streams", "a", "-loglevel", "error"]).decode()
+        out = subprocess.check_output(
+            ["ffprobe", "-i", input_path, "-show_streams", "-select_streams", "a", "-loglevel", "error"],
+            timeout=30
+        ).decode()
         if out.strip(): has_audio = True
-    except: pass
+    except (subprocess.TimeoutExpired, subprocess.CalledProcessError, FileNotFoundError) as e:
+        print(f"Audio stream detection failed (assuming no audio): {e}")
 
     cmd = ["ffmpeg", "-y", "-i", input_path, "-i", frame_path]
 
@@ -64,7 +68,7 @@ def edit_3_4_custom_layout_template(input_path: str, logo_path: str, output_path
         "-t", "59",
         output_path
     ])
-    subprocess.run(cmd, check=True)
+    subprocess.run(cmd, check=True, timeout=120)
     return "3:4 Custom Layout Template"
 
 def process_video_dynamically(input_path: str, logo_path: str, output_path: str, task: dict = None):

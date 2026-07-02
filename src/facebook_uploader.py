@@ -41,24 +41,56 @@ def get_page_access_token(user_token, page_id):
         logger.error(f"Error resolving Page Access Token: {e}. Falling back to provided token.")
     return user_token
 
+def _parse_fb_error(response):
+    """
+    Attempts to parse a Facebook Graph API error response.
+    Returns (err_msg, err_code, err_subcode) or (None, None, None).
+    """
+    try:
+        err_data = response.json()
+        error_info = err_data.get('error', {})
+        return (
+            error_info.get('message'),
+            error_info.get('code'),
+            error_info.get('error_subcode'),
+        )
+    except Exception:
+        return None, None, None
+
+
 def _handle_api_error(response, step_name):
     """
-    Checks the response status. If it's an error, attempts to parse
-    the Facebook JSON error details and raises a descriptive Exception.
+    Checks the response status. If it's an error, parses the Facebook
+    JSON error details and raises a descriptive Exception with guidance.
     """
-    if response.status_code >= 400:
-        try:
-            err_data = response.json()
-            error_info = err_data.get('error', {})
-            err_msg = error_info.get('message')
-            err_code = error_info.get('code', 'unknown')
-            err_subcode = error_info.get('error_subcode', 'unknown')
-            if err_msg:
-                raise Exception(f"Facebook API Error ({step_name}): {err_msg} (code: {err_code}, subcode: {err_subcode})")
-        except Exception as e:
-            if "Facebook API Error" in str(e):
-                raise
-        response.raise_for_status()
+    if response.status_code < 400:
+        return
+
+    err_msg, err_code, err_subcode = _parse_fb_error(response)
+    status = response.status_code
+
+    # Build a descriptive base message
+    detail = f"status {status}"
+    if err_msg:
+        detail = f"{err_msg} (code: {err_code}, subcode: {err_subcode})"
+
+    # Provide actionable guidance for the most common failure modes
+    hint = ""
+    if status == 403 or err_code == 200:
+        hint = (
+            " -> The access token likely lacks the 'pages_manage_posts' or "
+            "'pages_read_engagement' permission. Re-authorize the app at "
+            "https://developers.facebook.com/tools/explorer/ with those "
+            "permissions and generate a new Page Access Token."
+        )
+    elif status == 401 or err_code == 190:
+        hint = " -> The access token is expired or invalid. Generate a fresh token."
+    elif status == 429:
+        hint = " -> Rate limit exceeded. Wait before retrying."
+    elif status >= 500:
+        hint = " -> Facebook server error. Retry later."
+
+    raise Exception(f"Facebook API Error [{step_name}]: {detail}{hint}")
 
 def upload_reel(video_path, caption, title=None):
     """
@@ -69,11 +101,17 @@ def upload_reel(video_path, caption, title=None):
     if not user_token or not page_id:
         raise Exception("Facebook credentials missing. Ensure FB_ACCESS_TOKEN and FB_PAGE_ID are set.")
 
+    if not os.path.isfile(video_path):
+        raise FileNotFoundError(f"Video file not found: {video_path}")
+
     logger.info("Initializing Facebook Graph API upload process...")
     # Resolve Page Access Token
     access_token = get_page_access_token(user_token, page_id)
 
     file_size = os.path.getsize(video_path)
+    if file_size == 0:
+        raise ValueError(f"Video file is empty: {video_path}")
+    logger.info(f"Video file size: {file_size:,} bytes ({file_size / (1024*1024):.1f} MB)")
     
     # Step 1: Initialize Upload
     logger.info("Step 1: Initializing Reel upload session...")
@@ -137,6 +175,9 @@ def upload_photo(photo_path, caption):
     user_token, page_id = get_fb_credentials()
     if not user_token or not page_id:
         raise Exception("Facebook credentials missing. Ensure FB_ACCESS_TOKEN and FB_PAGE_ID are set.")
+
+    if not os.path.isfile(photo_path):
+        raise FileNotFoundError(f"Photo file not found: {photo_path}")
 
     logger.info("Initializing Facebook Graph API photo upload process...")
     # Resolve Page Access Token

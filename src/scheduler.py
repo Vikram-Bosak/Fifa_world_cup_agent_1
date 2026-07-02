@@ -9,7 +9,6 @@ from datetime import datetime, timezone, timedelta
 sys.path.insert(0, os.path.abspath(os.path.dirname(__file__)))
 
 from logger import logger
-from database import get_daily_upload_count
 from queue_manager import process_next_media
 from drive_reader import get_drive_service, get_daily_upload_count_from_drive, count_pending_media, has_uploaded_since_datetime
 from health_checker import run_all_health_checks
@@ -145,7 +144,12 @@ def main():
         check_folder_id = root_folder_id if target_media_type == 'reel' else os.environ.get('GOOGLE_DRIVE_PHOTO_FOLDER_ID')
 
         # Check if an upload has already occurred in/since the latest slot
-        if check_folder_id and has_uploaded_since_datetime(service, check_folder_id, latest_slot_dt_utc):
+        if not check_folder_id:
+            logger.warning(
+                f"No folder ID configured for '{target_media_type}' type. "
+                "Skipping duplicate-upload check. Set GOOGLE_DRIVE_PHOTO_FOLDER_ID if needed."
+            )
+        elif has_uploaded_since_datetime(service, check_folder_id, latest_slot_dt_utc):
             logger.info(f"Already uploaded for latest slot ({latest_slot_dt.strftime('%I:%M %p %Z')} - {target_media_type}). Skipping.")
             update_heartbeat("idle", {"message": f"Already uploaded in slot {latest_slot_dt.strftime('%I:%M %p %Z')}"})
             return
@@ -184,7 +188,7 @@ def main():
         if success:
             update_heartbeat("healthy", {"message": "Cycle completed successfully"})
         else:
-            update_heartbeat("healthy", {"message": "Checked queue, no upload was performed"})
+            update_heartbeat("idle", {"message": "Checked queue, no upload was performed"})
     except Exception as e:
         logger.error(f"Critical error in queue manager: {e}", exc_info=True)
         update_heartbeat("error", {"error": str(e)})

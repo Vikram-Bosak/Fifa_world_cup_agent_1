@@ -51,6 +51,10 @@ def run_single_sequence():
     # 1. Download
     report_download_start()
     video_data, stats = run_downloader()
+    # Ensure stats always has required keys for downstream code
+    stats.setdefault("errors", [])
+    stats.setdefault("videos_edited", 0)
+    stats.setdefault("videos_uploaded", 0)
     if not video_data:
         print("No video found.")
         report_data["download_status"] = "No new video found"
@@ -92,11 +96,11 @@ def run_single_sequence():
         import subprocess
         subprocess.run("git config --global user.name 'github-actions[bot]'", shell=True)
         subprocess.run("git config --global user.email 'github-actions[bot]@users.noreply.github.com'", shell=True)
-        subprocess.run("git add downloaded_history.txt", shell=True)
-        subprocess.run("git add temp/daily_limits.json", shell=True)
-        subprocess.run("git commit -m 'Update history (mid-run)'", shell=True)
-        subprocess.run("git pull origin main --rebase --strategy-option=ours", shell=True)
-        subprocess.run("git push origin HEAD:main", shell=True)
+        subprocess.run("git add downloaded_history.txt", shell=True, check=True)
+        subprocess.run("git add temp/daily_limits.json", shell=True, check=True)
+        subprocess.run("git commit -m 'Update history (mid-run)'", shell=True, check=True)
+        subprocess.run("git pull origin main --rebase --strategy-option=ours", shell=True, check=True)
+        subprocess.run("git push origin HEAD:main", shell=True, check=True)
         print("History pushed successfully.")
     except Exception as e:
         print(f"Warning: Mid-run history push failed: {e}")

@@ -90,8 +90,20 @@ def get_next_media(media_type='reel'):
     downloader = MediaIoBaseDownload(fh, request)
     done = False
     logger.info(f"Downloading {file_name} from Google Drive...")
-    while done is False:
-        status, done = downloader.next_chunk()
+    try:
+        while done is False:
+            status, done = downloader.next_chunk()
+    except Exception as dl_err:
+        # Clean up partial download on failure
+        fh.close()
+        if os.path.exists(temp_path):
+            os.remove(temp_path)
+        raise Exception(f"Failed to download {file_name} from Google Drive: {dl_err}")
+    finally:
+        try:
+            fh.close()
+        except Exception:
+            pass
     
     logger.info(f"Downloaded {file_name} successfully.")
     
@@ -169,16 +181,17 @@ def get_daily_upload_count_from_drive(service, root_folder_id):
 def has_already_uploaded_in_slot(service, root_folder_id, est_now):
     """
     Checks if a video was already uploaded to Google Drive during the current slot hour.
+    Uses timezone-aware UTC datetime instead of deprecated datetime.utcnow().
     """
     from datetime import datetime, timezone
     try:
         uploaded_id = get_folder_id(service, root_folder_id, 'Uploaded')
         
-        # Start of the current hour in UTC
-        now_utc = datetime.utcnow()
+        # Use timezone-aware UTC datetime (datetime.utcnow() is deprecated in 3.12+)
+        now_utc = datetime.now(timezone.utc)
         current_hour_start_utc = now_utc.replace(minute=0, second=0, microsecond=0)
         
-        query = f"'{uploaded_id}' in parents and createdTime >= '{current_hour_start_utc.isoformat() + 'Z'}' and trashed=false"
+        query = f"'{uploaded_id}' in parents and createdTime >= '{current_hour_start_utc.isoformat()}' and trashed=false"
         results = service.files().list(q=query, fields="files(id)").execute()
         return len(results.get('files', [])) > 0
     except Exception as e:

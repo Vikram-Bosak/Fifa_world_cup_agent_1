@@ -3,14 +3,14 @@ import hashlib
 import ffmpeg
 import time
 try:
-    from .database import is_duplicate, insert_media, update_reel_metadata, mark_reel_uploaded, mark_reel_failed, get_reel_status, increment_attempts, reset_attempts
+    from .database import insert_media, update_reel_metadata, mark_reel_uploaded, mark_reel_failed, get_reel_status, increment_attempts
     from .seo_generator import generate_seo_metadata, format_caption
     from .facebook_uploader import upload_reel, upload_photo
     from .telegram_reporter import report_success, report_failure
     from .drive_reader import get_next_media, move_file, count_pending_media
     from .logger import logger
 except ImportError:
-    from database import is_duplicate, insert_media, update_reel_metadata, mark_reel_uploaded, mark_reel_failed, get_reel_status, increment_attempts, reset_attempts
+    from database import insert_media, update_reel_metadata, mark_reel_uploaded, mark_reel_failed, get_reel_status, increment_attempts
     from seo_generator import generate_seo_metadata, format_caption
     from facebook_uploader import upload_reel, upload_photo
     from telegram_reporter import report_success, report_failure
@@ -74,7 +74,9 @@ def validate_media(filepath, media_type='reel'):
         return False, f"Error validating media: {e}"
 
 def process_next_media(media_type='reel'):
-    """Main workflow to process one media item from the queue with robust retry/validation logic."""
+    """Main workflow to process one media item from the queue with robust retry/validation logic.
+    Returns True only on successful upload, False otherwise (no media, validation error, or upload failure).
+    """
     video_info = get_next_media(media_type)
     if not video_info:
         logger.info(f"No pending {media_type}s found in Google Drive.")
@@ -88,6 +90,8 @@ def process_next_media(media_type='reel'):
     remaining_queue = count_pending_media(media_type) - 1
     
     logger.info(f"Processing {media_type}: {filename}")
+    
+    upload_succeeded = False
     
     try:
         # Duplicate Check
@@ -148,6 +152,7 @@ def process_next_media(media_type='reel'):
         # Move file in Drive
         move_file(service, file_id, video_info['pending_id'], video_info['uploaded_id'])
         logger.info("Process completed successfully. Video uploaded and moved to 'Uploaded' folder.")
+        upload_succeeded = True
         
     except PermanentValidationError as e:
         # Failure Handling for permanent/validation errors
@@ -194,4 +199,4 @@ def process_next_media(media_type='reel'):
             except Exception as cleanup_err:
                 logger.error(f"Failed to cleanup temporary file {filepath}: {cleanup_err}")
             
-    return True
+    return upload_succeeded
