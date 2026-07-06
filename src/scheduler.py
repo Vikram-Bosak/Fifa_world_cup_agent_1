@@ -113,10 +113,10 @@ def main():
         logger.error(f"System health check failed. Aborting cycle. Results: {health_results}")
         update_heartbeat("unhealthy", health_results)
         try:
-            from telegram_reporter import report_failure
-            report_failure("System Health Check", f"Critical Health Check Failure:\n{health_results}", 0)
+            from src.common.discord import report_failure
+            report_failure(f"System Health Check: Critical Health Check Failure:\n{health_results}")
         except Exception as tel_err:
-            logger.error(f"Failed to send health failure notification: {tel_err}")
+            logger.error(f"Failed to send health failure notification to Discord: {tel_err}")
         return
 
     # Check if we have pending videos
@@ -189,10 +189,10 @@ def main():
         logger.error(f"Critical error in queue manager: {e}", exc_info=True)
         update_heartbeat("error", {"error": str(e)})
         try:
-            from telegram_reporter import report_failure
-            report_failure("Queue Manager Process", f"Critical Queue Manager failure: {e}", pending_reels + pending_photos)
+            from src.common.discord import report_failure
+            report_failure(f"Queue Manager Process: Critical Queue Manager failure: {e}")
         except Exception as tel_err:
-            logger.error(f"Failed to report crash to Telegram: {tel_err}")
+            logger.error(f"Failed to report crash to Discord: {tel_err}")
 
 if __name__ == "__main__":
     main()

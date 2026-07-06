@@ -61,7 +61,7 @@ def run_upload(video_data):
     logging.info(f"Waiting for {delay_seconds} seconds ({delay_minutes:.1f} minutes) before uploading to appear human...")
     
     try:
-        from src.common.telegram import report_upload_delay
+        from src.common.discord import report_upload_delay
         report_upload_delay(delay_minutes)
     except Exception as e:
         logging.warning(f"Failed to send delay report: {e}")
