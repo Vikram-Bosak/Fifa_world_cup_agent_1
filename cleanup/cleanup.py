@@ -9,7 +9,7 @@ load_dotenv()
 
 # Add parent directory to path so we can import common
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from common.telegram import report_final_summary, send_video
+from common.discord import report_final_summary, send_video
 
 def cleanup_and_report():
     print("Starting cleanup and final reporting...")
@@ -41,8 +41,8 @@ def cleanup_and_report():
     # Send the actual video to Telegram
     video_path = "temp/edited_video.mp4"
     if os.path.exists(video_path):
-        print("Sending final edited video to Telegram...")
-        send_video(video_path, caption="🎬 <b>Here is your final Viral Edited Video!</b>")
+        print("Sending final edited video to Discord...")
+        send_video(video_path, caption="🎬 **Here is your final Viral Edited Video!**")
     
     # Perform strict cleanup
     temp_dir = "temp"

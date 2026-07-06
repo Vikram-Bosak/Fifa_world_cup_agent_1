@@ -3,29 +3,24 @@ import json
 import requests
 import shutil
 
-def send_telegram_message(message):
-    bot_token = os.environ.get('TELEGRAM_BOT_TOKEN')
-    chat_id = os.environ.get('TELEGRAM_CHAT_ID')
+def send_discord_message(message):
+    webhook_url = os.environ.get('DISCORD_WEBHOOK_URL', 'https://discord.com/api/webhooks/1523550287313375409/Mp1Mlfgqd5bUcXbo0Z1iFkP-EgrLUxg8eQbFZTTCkCSZiWcKlHAtNnNeBBgQXUYaTnhN')
     
-    if not bot_token or not chat_id:
-        print("Telegram bot configuration is missing. Skipping Telegram notification.")
+    if not webhook_url:
+        print("Discord webhook URL is missing. Skipping Discord notification.")
         return False
         
-    url = f"https://api.telegram.org/bot{bot_token}/sendMessage"
     payload = {
-        'chat_id': chat_id,
-        'text': message,
-        'parse_mode': 'HTML',
-        'disable_web_page_preview': True
+        'content': message
     }
     
     try:
-        response = requests.post(url, json=payload, timeout=30)
+        response = requests.post(webhook_url, json=payload, timeout=30)
         response.raise_for_status()
-        print("Successfully sent unified Telegram report.")
+        print("Successfully sent unified Discord report.")
         return True
     except requests.exceptions.RequestException as e:
-        print(f"Failed to send Telegram message: {e}")
+        print(f"Failed to send Discord message: {e}")
         return False
 
 def main():
@@ -63,24 +58,24 @@ def main():
     emoji_status = "✅" if upload_status == "Success" else "❌"
     
     message = (
-        f"{emoji_status} <b>Pipeline Run Completed</b>\n\n"
-        f"🎬 <b>Video Name:</b>\n{video_name}\n\n"
-        f"📥 <b>Download Status:</b> {download_status}\n"
-        f"✂️ <b>Editing Status:</b> {editing_status}\n"
-        f"📤 <b>Facebook Upload Status:</b> {upload_status}\n"
-        f"📤 <b>YouTube Upload Status:</b> {yt_status}\n\n"
-        f"🏷️ <b>SEO Title:</b>\n{seo_title}\n\n"
-        f"📝 <b>Description:</b>\n{description}\n\n"
-        f"🔗 <b>Facebook Reel URL:</b>\n{fb_url}\n\n"
-        f"▶️ <b>YouTube Video URL:</b>\n{yt_url}\n\n"
-        f"📦 <b>GitHub Repository:</b>\n{repo_url}\n\n"
-        f"📄 <b>Workflow Run:</b>\n{run_url}"
+        f"{emoji_status} **Pipeline Run Completed**\n\n"
+        f"🎬 **Video Name:**\n{video_name}\n\n"
+        f"📥 **Download Status:** {download_status}\n"
+        f"✂️ **Editing Status:** {editing_status}\n"
+        f"📤 **Facebook Upload Status:** {upload_status}\n"
+        f"📤 **YouTube Upload Status:** {yt_status}\n\n"
+        f"🏷️ **SEO Title:**\n{seo_title}\n\n"
+        f"📝 **Description:**\n{description}\n\n"
+        f"🔗 **Facebook Reel URL:**\n{fb_url}\n\n"
+        f"▶️ **YouTube Video URL:**\n{yt_url}\n\n"
+        f"📦 **GitHub Repository:**\n{repo_url}\n\n"
+        f"📄 **Workflow Run:**\n{run_url}"
     )
     
     if "No new video" in download_status:
-        print("No new video to process. Skipping Telegram notification to avoid spam.")
+        print("No new video to process. Skipping Discord notification to avoid spam.")
     else:
-        send_telegram_message(message)
+        send_discord_message(message)
     
     # Cleanup workspace completely
     if os.path.exists("workspace"):
