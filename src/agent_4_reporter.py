@@ -35,14 +35,14 @@ def main():
     else:
         report = {}
         
-    # Default values in case keys are missing
-    video_name = report.get('video_name', 'N/A')
-    download_status = report.get('download_status', 'Failed / Unknown')
-    editing_status = report.get('editing_status', 'N/A')
-    upload_status = report.get('upload_status', 'N/A')
-    seo_title = report.get('seo_title', 'N/A')
-    description = report.get('description', 'N/A')
-    fb_url = report.get('facebook_url', 'N/A')
+    # Default values in case keys are missing, forced to be valid strings
+    video_name = str(report.get('video_name') or 'N/A').strip() or 'N/A'
+    download_status = str(report.get('download_status') or 'Failed / Unknown').strip() or 'Failed / Unknown'
+    editing_status = str(report.get('editing_status') or 'N/A').strip() or 'N/A'
+    upload_status = str(report.get('upload_status') or 'N/A').strip() or 'N/A'
+    seo_title = str(report.get('seo_title') or 'N/A').strip() or 'N/A'
+    description = str(report.get('description') or 'N/A').strip() or 'N/A'
+    fb_url = str(report.get('facebook_url') or 'N/A').strip() or 'N/A'
     
     # Search for safety flags/actions in state json files
     safety_info = "Clean (No risks flagged)"
@@ -60,8 +60,10 @@ def main():
     except Exception as e:
         print(f"Could not load safety state info: {e}")
 
+    safety_info = str(safety_info or 'Clean (No risks flagged)').strip() or 'Clean (No risks flagged)'
+
     # Determine YouTube Status
-    yt_url = report.get('youtube_url', 'N/A')
+    yt_url = str(report.get('youtube_url') or 'N/A').strip() or 'N/A'
     yt_status = "Success" if "youtube.com" in yt_url or "youtu.be" in yt_url else "Failed / N/A"
     
     # GitHub Action Variables
