@@ -7,10 +7,48 @@ try:
 except ImportError:
     from logger import logger
 
+# ──────────────────────────────────────────────────────────────────────────────
+# Trending Football/Soccer Keywords and Hashtags
+# ──────────────────────────────────────────────────────────────────────────────
+FOOTBALL_KEYWORDS = {
+    "players": [
+        "Lionel Messi", "Cristiano Ronaldo", "Kylian Mbappé", "Erling Haaland",
+        "Jude Bellingham", "Vinicius Jr", "Bukayo Saka", "Rodri",
+        "Federico Valverde", "Florian Wirtz", "Lamine Yamal", "Phil Foden",
+        "Ousmane Dembélé", "Neymar", "Kevin De Bruyne", "Marcus Rashford",
+    ],
+    "teams": [
+        "Real Madrid", "FC Barcelona", "Manchester City", "Bayern Munich",
+        "Paris Saint-Germain", "Liverpool", "Arsenal", "Inter Milan",
+        "Atletico Madrid", "Napoli", "Borussia Dortmund", "Juventus",
+    ],
+    "competitions": [
+        "FIFA World Cup", "UEFA Champions League", "Premier League",
+        "La Liga", "Serie A", "Bundesliga", "Ligue 1", "Copa America",
+        "UEFA Euro 2026", "Club World Cup", "AFCON", "FA Cup",
+    ],
+}
+
+FOOTBALL_HASHTAGS = [
+    "#FIFAWorldCup", "#Football", "#Soccer", "#WorldCup2026",
+    "#ChampionsLeague", "#PremierLeague", "#LaLiga", "#FootballHighlights",
+    "#SoccerGoals", "#ViralFootball", "#FootballDaily", "#BeautifulGame",
+    "#MatchDay", "#FootballFans", "#TopBins", "#CleanSheet",
+    "#FootballMoments", "#SoccerViral", "#GoalOfTheSeason",
+]
+
 def clean_filename(filename):
-    # Remove extension and replace underscores/hyphens with spaces
+    # Remove extension
     name_without_ext = os.path.splitext(filename)[0]
-    cleaned = re.sub(r'[-_]', ' ', name_without_ext)
+    # Remove URLs
+    cleaned = re.sub(r'https?://\S+', '', name_without_ext)
+    # Remove Twitter handles
+    cleaned = re.sub(r'\.?@\w+', '', cleaned)
+    # Remove hashtag terms
+    cleaned = re.sub(r'#\w+', '', cleaned)
+    # Replace hyphens/underscores/special chars with spaces
+    cleaned = re.sub(r'[-_]', ' ', cleaned)
+    cleaned = re.sub(r'\s+', ' ', cleaned)
     return cleaned.strip()
 
 def generate_seo_metadata(filename, media_type='reel'):
@@ -35,20 +73,20 @@ def generate_seo_metadata(filename, media_type='reel'):
     
     content_type_str = "Facebook Reel" if media_type == 'reel' else "Facebook Photo Post"
     video_str = "short vertical video (Facebook Reel)" if media_type == 'reel' else "stunning photo/image"
-    hashtag_str = "#Reels" if media_type == 'reel' else "#PhotoOfTheDay"
+    hashtag_str = "#Reels #FIFAWorldCup #Football" if media_type == 'reel' else "#Football #Soccer"
     
     system_prompt = (
-        f"You are an expert Social Media Manager and SEO specialist for {content_type_str}s targeting a United States audience. "
-        "Your goal is to maximize engagement, click-through rate, and virality."
+        f"You are an expert Social Media Manager and SEO specialist for {content_type_str}s targeting global football/soccer fans. "
+        "Your goal is to maximize engagement, click-through rate, search visibility, and organic reach."
     )
     
     user_prompt = f"""
-    Generate viral SEO metadata for a {video_str} about: "{topic}".
+    Generate viral, SEO-optimized football metadata for a {video_str} about: "{topic}".
     
     Requirements:
-    1. Title: Short, catchy, uses emotional words, includes relevant emojis. Max 60 characters.
-    2. Description: 1-2 short sentences that create curiosity.
-    3. Hashtags: 5-8 highly relevant and trending hashtags (include {hashtag_str}).
+    1. Title: Short, catchy, uses power words (e.g. UNBELIEVABLE, INSANE, MASTERCLASS), includes relevant emojis. Max 60 characters.
+    2. Description: 1-2 short, engaging sentences that create curiosity. Do NOT include any Twitter/X usernames, source URLs, or links.
+    3. Hashtags: 5-8 highly relevant and trending football hashtags (include {hashtag_str}).
     
     Format the output exactly as JSON:
     {{
@@ -84,8 +122,8 @@ def generate_seo_metadata(filename, media_type='reel'):
         
         return {
             'title': data.get('title', topic.title()),
-            'description': data.get('description', f"Amazing video about {topic}!"),
-            'hashtags': data.get('hashtags', "#Reels #Viral #Trending")
+            'description': data.get('description', f"Unbelievable football moment featuring {topic}! Watch till the end! ⚽🔥"),
+            'hashtags': data.get('hashtags', "#FIFAWorldCup #Football #Soccer #Reels")
         }
         
     except Exception as e:
@@ -100,148 +138,61 @@ def generate_fallback_metadata(filename):
         return lst[h % len(lst)]
         
     topic = clean_filename(filename)
-    topic_title = topic.title()
+    topic_title = topic.title() if topic else "Unmissable Football Moment"
     
-    # Extract lowercase words for keyword matching
-    words = [w.lower() for w in re.findall(r'\w+', topic) if len(w) > 2]
+    # Pre-saved Football SEO Patterns (Titles & Descriptions)
+    titles = [
+        "Unbelievable {topic} moment! ⚽🔥",
+        "The raw passion of {topic} is unreal! 🙌",
+        "POV: Witnessing {topic} history. 🤯",
+        "Is this the best of {topic} ever? 👀",
+        "This {topic} clip will give you goosebumps! 🚨"
+    ]
+    descriptions = [
+        "Witness one of the most incredible football moments featuring {topic}. The beautiful game never fails to amaze! 🌍⚽",
+        "Up close and personal with {topic}! An extraordinary glimpse into world class football. Share this with a friend! 📲🏆",
+        "Just when you think you've seen it all, this happens. Absolute football magic! What are your thoughts on this? 👇"
+    ]
     
-    # Define stopwords
-    stopwords = {
-        'the', 'and', 'for', 'you', 'with', 'from', 'this', 'that', 'with',
-        'are', 'was', 'were', 'has', 'have', 'had', 'its', 'their', 'our',
-        'your', 'his', 'her', 'she', 'him', 'them', 'who', 'whom', 'which'
-    }
-    
-    keywords = [w for w in words if w not in stopwords]
-    
-    # Classify category
-    wildlife_keywords = {
-        'tiger', 'lion', 'leopard', 'cheetah', 'gorilla', 'elephant', 'shark', 'whale',
-        'bear', 'eagle', 'hawk', 'snake', 'hunt', 'predator', 'safari', 'animal', 'wolf',
-        'panther', 'jaguar', 'buffalo', 'crocodile', 'alligator'
-    }
-    
-    nature_keywords = {
-        'nature', 'forest', 'jungle', 'ocean', 'river', 'mountain', 'sea', 'sky',
-        'rain', 'storm', 'scenic', 'landscape', 'valley', 'desert', 'beach', 'sunset',
-        'sunrise', 'lake', 'waterfall', 'canyon'
-    }
-    
-    is_wildlife = any(k in wildlife_keywords for k in keywords)
-    is_nature = any(k in nature_keywords for k in keywords)
-    
-    # Pre-saved SEO Patterns (Titles & Descriptions)
-    if is_wildlife:
-        titles = [
-            "Wait for it... {topic} in full action! 😱",
-            "The raw power of {topic} is unreal! 🦁",
-            "POV: Witnessing {topic} up close. 🤯",
-            "Nature's ultimate predator: {topic}! 🔥",
-            "This {topic} footage will leave you speechless! 🚨"
-        ]
-        descriptions = [
-            "Witness the raw power, beauty, and survival instincts of {topic} in the wild. Nature never fails to amaze! 🌍",
-            "Up close and personal with {topic}! An extraordinary glimpse into one of the wild's finest. 🐾",
-            "Just when you think you've seen it all, this incredible moment of {topic} happens. Absolute wonder! 😱"
-        ]
-        cat_tags = ['#wildlife', '#nature', '#animals', '#safari', '#predator', '#wildlifephotography', '#naturelovers', '#wild']
-    elif is_nature:
-        titles = [
-            "Breathtaking views of {topic}! 🏔️",
-            "The absolute beauty of {topic}. ✨",
-            "Nature at its finest: {topic}! 🌍",
-            "Escape into this stunning {topic} scene. 🌿",
-            "This {topic} view is absolutely unreal! 😍"
-        ]
-        descriptions = [
-            "Take a deep breath and appreciate the stunning landscape and peaceful vibes of {topic}. 🍃",
-            "Breathtaking views of {topic} that will make you want to pack your bags and travel. Pure serenity! ✨",
-            "Nature is the ultimate artist, and {topic} is a true masterpiece. Simply awe-inspiring! 🌍"
-        ]
-        cat_tags = ['#nature', '#scenic', '#beautifulplaces', '#landscape', '#peaceful', '#earth', '#travel', '#exploring']
-    else:
-        titles = [
-            "You won't believe this {topic}! 😱",
-            "Wait for the end... {topic}! 🚨",
-            "This {topic} video is absolutely insane! 🤯",
-            "Watch this: {topic}! 🎬",
-            "This {topic} clip changes everything... 🔥"
-        ]
-        descriptions = [
-            "This footage of {topic} is taking over the internet! Absolutely mind-blowing to watch. 💥",
-            "Just when you think you've seen it all, {topic} comes along. Check out this must-watch video! 👇",
-            "Breathtaking vertical reel of {topic}! Share this with someone who needs to see it."
-        ]
-        cat_tags = ['#viral', '#trending', '#mustwatch', '#dailyreels', '#explorepage', '#popular']
-        
     # Get deterministic choices based on filename to keep output consistent per video
     title_template = get_deterministic_choice(filename, titles)
     desc_template = get_deterministic_choice(filename, descriptions)
     
     # Generate Title & Base Description
     title = title_template.format(topic=topic_title)
-    # Ensure title length limit
     if len(title) > 60:
         title = title[:57] + "..."
         
-    base_desc = desc_template.format(topic=topic_title)
-    
-    # Basic CTAs
-    ctas = [
-        "Double tap if you love this! ❤️",
-        "Follow us for more daily wild reels! 📲",
-        "Tag a friend who needs to see this! 👇",
-        "What are your thoughts on this? Comment below! 💬",
-        "Share this with someone who would love it! ✈️"
-    ]
-    cta = get_deterministic_choice(filename + "_cta", ctas)
-    description = f"{base_desc}\n\n{cta}"
-    
-    # Keywords Database mapping
-    KEYWORDS_DATABASE = {
-        'tiger': ['bigcats', 'panthera', 'predator', 'savethe-tigers'],
-        'lion': ['kingofjungle', 'bigcats', 'wildlions', 'pride'],
-        'leopard': ['spottedcats', 'ghostsoftheforest', 'climbing'],
-        'cheetah': ['fastestanimal', 'speed', 'savannah'],
-        'elephant': ['gentlegiants', 'elephants', 'conservation'],
-        'shark': ['oceanlife', 'predators', 'underwater', 'deepblue'],
-        'whale': ['oceanlife', 'marinebiology', 'gentlegiants'],
-        'gorilla': ['primates', 'apes', 'silverback'],
-        'eagle': ['birds', 'raptor', 'flying'],
-        'hunt': ['predatorandprey', 'survival', 'naturein-action'],
-        'jungle': ['rainforest', 'tropical', 'wildnature'],
-        'mountain': ['climbing', 'hiking', 'alpine', 'peak'],
-        'ocean': ['marine', 'sea', 'underwaterworld'],
-    }
+    description = desc_template.format(topic=topic_title)
     
     # Build Hashtags list
-    # 1. Start with fundamental tags
-    hash_tags_set = {'#reels', '#viral', '#trending'}
+    hash_tags_set = {'#fifaworldcup', '#football', '#soccer', '#reels'}
     
-    # 2. Add category tags
-    for tag in cat_tags:
-        hash_tags_set.add(tag.lower())
-        
-    # 3. Add tags from clean keywords database
-    for k in keywords:
-        if k in KEYWORDS_DATABASE:
-            for extra in KEYWORDS_DATABASE[k]:
-                hash_tags_set.add(f"#{extra}")
-                
-    # 4. Add keywords as tags themselves
-    for k in keywords:
-        if len(k) > 2:
-            hash_tags_set.add(f"#{k}")
+    # Add matches from trending keywords to specific hashtags
+    kw = FOOTBALL_KEYWORDS
+    context_lower = topic.lower()
+    for p in kw["players"]:
+        if p.lower() in context_lower:
+            hash_tags_set.add(f"#{p.replace(' ', '').lower()}")
+    for t in kw["teams"]:
+        if t.lower() in context_lower:
+            hash_tags_set.add(f"#{t.replace(' ', '').lower()}")
+    for c in kw["competitions"]:
+        if c.lower() in context_lower:
+            hash_tags_set.add(f"#{c.replace(' ', '').lower()}")
             
-    # Convert set back to list, ensure we don't have duplicates, and limit to ~8-10 tags
-    ordered_tags = ['#reels', '#viral', '#trending']
+    # Convert set back to list, ensure we don't have duplicates, and limit to ~8 tags
+    ordered_tags = ['#fifaworldcup', '#football', '#soccer', '#reels']
     for tag in sorted(hash_tags_set):
         if tag not in ordered_tags:
             ordered_tags.append(tag)
             
-    # Slice to a max of 10 hashtags to avoid tag stuffing
-    final_tags = ordered_tags[:10]
-    hashtags_str = " ".join(final_tags)
+    final_tags = ordered_tags[:8]
+    hashtags_str = " ".join([t.title() if not t.startswith('#fifa') else t.upper() for t in final_tags])
+    # Capitalize tags properly (e.g. #Football, #Soccer)
+    hashtags_str = re.sub(r'#([a-z])', lambda m: '#' + m.group(1).upper(), hashtags_str)
+    # Correct back #FIFA
+    hashtags_str = hashtags_str.replace("#Fifa", "#FIFA")
     
     return {
         'title': title,

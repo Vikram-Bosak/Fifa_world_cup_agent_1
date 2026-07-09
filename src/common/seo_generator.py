@@ -219,6 +219,23 @@ Return ONLY a valid JSON object with these exact keys:
 # ──────────────────────────────────────────────────────────────────────────────
 # Stage 2 – Generate upload metadata (improved, platform-specific)
 # ──────────────────────────────────────────────────────────────────────────────
+import re
+
+def clean_input_title(title: str) -> str:
+    if not title:
+        return ""
+    # Remove URLs
+    title = re.sub(r'https?://\S+', '', title)
+    # Remove Twitter handles (e.g. .@username or @username)
+    title = re.sub(r'\.?@\w+', '', title)
+    # Remove hashtag terms (e.g. #Football)
+    title = re.sub(r'#\w+', '', title)
+    # Replace hyphens/underscores with spaces
+    title = re.sub(r'[-_]', ' ', title)
+    # Clean up extra spacing
+    title = re.sub(r'\s+', ' ', title)
+    return title.strip()
+
 def generate_upload_metadata(context: dict) -> dict:
     """
     Stage 2: Generates SEO metadata based on the full editing context.
@@ -229,6 +246,11 @@ def generate_upload_metadata(context: dict) -> dict:
         print("Warning: NVIDIA_API_KEY not found. Using fallback SEO data.")
         return _get_fallback_metadata(context)
     
+    # Clean the input context strings to remove noisy handles, URLs, and hashtags
+    title_clean = clean_input_title(context.get('title', 'Unknown'))
+    headline_clean = clean_input_title(context.get('short_headline', ''))
+    story_clean = clean_input_title(context.get('story', ''))
+
     # Build a compact keyword reference for the prompt
     sample_keywords = ', '.join(
         FOOTBALL_KEYWORDS['players'][:4]
@@ -240,11 +262,11 @@ def generate_upload_metadata(context: dict) -> dict:
     prompt = f"""You are a top-tier football/soccer social media SEO specialist. Generate platform-specific upload metadata for a viral football video.
 
 === FULL VIDEO CONTEXT ===
-Original Title/Text: {context.get('title', 'Unknown')}
+Original Title/Text: {title_clean}
 Source Profile: {context.get('source', 'Unknown')}
 Determined Category: {context.get('category', 'Highlight')}
-Headline Used in Video: {context.get('short_headline', '')}
-Story Used in Video: {context.get('story', '')}
+Headline Used in Video: {headline_clean}
+Story Used in Video: {story_clean}
 
 === TRENDING FOOTBALL REFERENCE DATA ===
 Keyword pool (use naturally): {sample_keywords}
@@ -287,7 +309,7 @@ Generate SEO metadata tailored for YouTube AND Facebook. Each platform has diffe
 • Write only in English.
 • Match the emotional tone of the video (epic goal → excited, controversy → dramatic, skill → amazed).
 • If you can identify the specific players/teams from the title, USE their exact names.
-• Do NOT output any source URLs.
+• Do NOT output any source URLs or Twitter usernames/handles.
 
 Return ONLY a valid JSON object with these exact keys:
 {{
@@ -336,7 +358,12 @@ Return ONLY a valid JSON object with these exact keys:
 def _get_fallback_metadata(context=None):
     if not context:
         context = {}
-    original_title = context.get('title', 'Unbelievable Football Moment! ⚽🔥')
+    
+    raw_title = context.get('title', 'Unbelievable Football Moment! ⚽🔥')
+    original_title = clean_input_title(raw_title)
+    if not original_title:
+        original_title = "Unbelievable Football Moment! ⚽🔥"
+        
     category = context.get('category', 'Highlight')
 
     # Smart truncation for YouTube title
@@ -345,14 +372,15 @@ def _get_fallback_metadata(context=None):
     # Build description with trending keywords
     kw = FOOTBALL_KEYWORDS
     player_hint = ""
-    if any(p.lower() in original_title.lower() for p in kw["players"]):
-        matched = [p for p in kw["players"] if p.lower() in original_title.lower()][0]
-        player_hint = f" featuring {matched}"
+    for p in kw["players"]:
+        if p.lower() in original_title.lower():
+            player_hint = f" featuring {p}"
+            break
 
     description = (
         f"{original_title}\n\n"
         f"This is football at its finest! From the beautiful game to the biggest stages in the world, "
-        f"moments like these remind us why we love the sport.{' Featuring ' + player_hint.strip() + '.' if player_hint else ''}\n"
+        f"moments like these remind us why we love the sport.{player_hint}.\n"
         f"👉 LIKE this video, SUBSCRIBE for daily football highlights, and COMMENT who your GOAT is! 🐐⚽"
     )
 
@@ -407,7 +435,7 @@ def _get_fallback_metadata(context=None):
 # ──────────────────────────────────────────────────────────────────────────────
 if __name__ == "__main__":
     dummy_context = {
-        "title": "Messi Scores Stunning Free Kick against France",
+        "title": "Messi Scores Stunning Free Kick against France .@StopThatMessi https://t.co/xyz",
         "source": "FIFA World Cup",
         "source_url": "https://x.com/FIFAWorldCup/status/1234567890"
     }
@@ -420,3 +448,4 @@ if __name__ == "__main__":
     
     print("\nGenerated Metadata:")
     print(json.dumps(generate_upload_metadata(dummy_context), indent=4))
+

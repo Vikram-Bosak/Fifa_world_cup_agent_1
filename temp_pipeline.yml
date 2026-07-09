@@ -49,6 +49,13 @@ jobs:
         run: |
           python main_agent.py --force-upload
 
+      - name: Run Unified Reporter (agent_4_reporter.py)
+        if: always()
+        env:
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+        run: |
+          python src/agent_4_reporter.py
+
       - name: Commit and Push Queue Updates
         run: |
           git config --global user.name "github-actions[bot]"

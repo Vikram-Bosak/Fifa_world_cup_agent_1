@@ -55,6 +55,13 @@ jobs:
           echo "Starting Main Agent..."
           python main_agent.py
 
+      - name: 📢 Step 2 - Run Unified Reporter (agent_4_reporter.py)
+        if: always()
+        env:
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+        run: |
+          python src/agent_4_reporter.py
+
       - name: 💾 Commit updated files (like history and archive)
         if: always()
         run: |
