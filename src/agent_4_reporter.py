@@ -3,29 +3,23 @@ import json
 import requests
 import shutil
 
-def send_telegram_message(message):
-    bot_token = os.environ.get('TELEGRAM_BOT_TOKEN')
-    chat_id = os.environ.get('TELEGRAM_CHAT_ID')
-    
-    if not bot_token or not chat_id:
-        print("Telegram bot configuration is missing. Skipping Telegram notification.")
+def send_discord_report(embed):
+    webhook_url = os.environ.get('DISCORD_WEBHOOK_URL')
+    if not webhook_url:
+        print("Discord Webhook URL is missing. Skipping Discord notification.")
         return False
         
-    url = f"https://api.telegram.org/bot{bot_token}/sendMessage"
     payload = {
-        'chat_id': chat_id,
-        'text': message,
-        'parse_mode': 'HTML',
-        'disable_web_page_preview': True
+        "embeds": [embed]
     }
     
     try:
-        response = requests.post(url, json=payload, timeout=30)
+        response = requests.post(webhook_url, json=payload, headers={"Content-Type": "application/json"}, timeout=30)
         response.raise_for_status()
-        print("Successfully sent unified Telegram report.")
+        print("Successfully sent unified Discord report.")
         return True
     except requests.exceptions.RequestException as e:
-        print(f"Failed to send Telegram message: {e}")
+        print(f"Failed to send Discord message: {e}")
         return False
 
 def main():
@@ -60,27 +54,32 @@ def main():
     repo_url = f"https://github.com/{repo}"
     run_url = f"{repo_url}/actions/runs/{run_id}"
     
-    emoji_status = "✅" if upload_status == "Success" else "❌"
+    is_success = upload_status == "Success"
+    color = 3066993 if is_success else 15158332
     
-    message = (
-        f"{emoji_status} <b>Pipeline Run Completed</b>\n\n"
-        f"🎬 <b>Video Name:</b>\n{video_name}\n\n"
-        f"📥 <b>Download Status:</b> {download_status}\n"
-        f"✂️ <b>Editing Status:</b> {editing_status}\n"
-        f"📤 <b>Facebook Upload Status:</b> {upload_status}\n"
-        f"📤 <b>YouTube Upload Status:</b> {yt_status}\n\n"
-        f"🏷️ <b>SEO Title:</b>\n{seo_title}\n\n"
-        f"📝 <b>Description:</b>\n{description}\n\n"
-        f"🔗 <b>Facebook Reel URL:</b>\n{fb_url}\n\n"
-        f"▶️ <b>YouTube Video URL:</b>\n{yt_url}\n\n"
-        f"📦 <b>GitHub Repository:</b>\n{repo_url}\n\n"
-        f"📄 <b>Workflow Run:</b>\n{run_url}"
-    )
+    embed = {
+        "title": "✅ Pipeline Run Completed Successfully" if is_success else "❌ Pipeline Run Failed",
+        "color": color,
+        "fields": [
+            {"name": "🎬 Video Name", "value": video_name, "inline": False},
+            {"name": "📥 Download Status", "value": download_status, "inline": True},
+            {"name": "✂️ Editing Status", "value": editing_status, "inline": True},
+            {"name": "📤 Facebook Upload", "value": upload_status, "inline": True},
+            {"name": "📤 YouTube Upload", "value": yt_status, "inline": True},
+            {"name": "🏷️ SEO Title", "value": seo_title, "inline": False},
+            {"name": "🔗 Facebook Reel URL", "value": fb_url, "inline": False},
+            {"name": "▶️ YouTube Video URL", "value": yt_url, "inline": False},
+            {"name": "📄 Workflow Run", "value": f"[View Run]({run_url})", "inline": False}
+        ],
+        "footer": {
+            "text": f"Repository: {repo} | Run ID: {run_id}"
+        }
+    }
     
     if "No new video" in download_status:
-        print("No new video to process. Skipping Telegram notification to avoid spam.")
+        print("No new video to process. Skipping Discord notification to avoid spam.")
     else:
-        send_telegram_message(message)
+        send_discord_report(embed)
     
     # Cleanup workspace completely
     if os.path.exists("workspace"):

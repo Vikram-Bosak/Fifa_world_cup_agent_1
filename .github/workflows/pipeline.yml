@@ -50,6 +50,7 @@ jobs:
           X_PROFILES: ${{ secrets.X_PROFILES }}
           TWITTER_PROFILES: ${{ secrets.X_PROFILES }}
           X_BACKUP_PROFILES: ${{ secrets.X_BACKUP_PROFILES }}
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
         run: |
           echo "Starting Main Agent..."
           python main_agent.py
