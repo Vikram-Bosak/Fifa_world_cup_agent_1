@@ -35,7 +35,11 @@ def run_upload(video_data):
             os.remove(edited_video_path)
         return video_data
         
-    # Construct Facebook Caption dynamically
+    # Construct Facebook Caption dynamically and parse YouTube SEO metadata
+    yt_title = title
+    yt_desc = ""
+    yt_tags = []
+    
     try:
         from src.common.seo_generator import generate_upload_metadata
         task_id = video_data.get("id", "default")
@@ -49,10 +53,16 @@ def run_upload(video_data):
             context = video_data
             
         metadata = generate_upload_metadata(context)
-        fb_caption = f"{metadata.get('facebook_caption', headline)}\n\n{metadata.get('hashtags', '#FIFAWorldCup #Football')}\n\nSource: {source_url}"
+        fb_caption = f"{metadata.get('facebook_caption', headline)}\n\n{metadata.get('hashtags', '#FIFAWorldCup #Football')}"
+        yt_title = metadata.get('title', title)
+        yt_desc = metadata.get('description', '')
+        yt_tags = metadata.get('tags', [])
     except Exception as e:
         logging.error(f"Error generating dynamic SEO metadata: {e}")
-        fb_caption = f"{headline}\n\n#FIFAWorldCup #Football #Soccer\n\nSource: {source_url}"
+        fb_caption = f"{headline}\n\n#FIFAWorldCup #Football #Soccer"
+        yt_title = title
+        yt_desc = fb_caption
+        yt_tags = ["football", "soccer", "fifa", "highlights"]
         
     video_data["description"] = fb_caption
 
@@ -87,11 +97,12 @@ def run_upload(video_data):
         logging.info("Waiting 2 seconds before uploading to YouTube Shorts...")
         time.sleep(2)
         
-        yt_title = title[:100] # YouTube title limit is 100 chars
-        yt_desc = f"{fb_caption}\n#shorts"
-        
-        logging.info(f"Starting YouTube Shorts upload: title='{yt_title}'")
-        yt_url = upload_to_youtube(edited_video_path, yt_title, yt_desc)
+        yt_title_clean = yt_title[:100] # YouTube title limit is 100 chars
+        if "#shorts" not in yt_desc.lower():
+            yt_desc = f"{yt_desc}\n\n#shorts"
+            
+        logging.info(f"Starting YouTube Shorts upload: title='{yt_title_clean}', tags={yt_tags}")
+        yt_url = upload_to_youtube(edited_video_path, yt_title_clean, yt_desc, tags=yt_tags)
         logging.info(f"Successfully uploaded to YouTube Shorts: {yt_url}")
         video_data["yt_url"] = yt_url
         yt_success = True

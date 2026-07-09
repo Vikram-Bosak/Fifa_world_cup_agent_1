@@ -264,6 +264,7 @@ Generate SEO metadata tailored for YouTube AND Facebook. Each platform has diffe
 • Naturally include 3-5 football keywords (player names, teams, competition).
 • End with a call to action (Like, Subscribe, Comment).
 • Include relevant hashtags at the end.
+• DO NOT append or request any Source URLs. Keep it clean.
 
 **3. "facebook_caption" (Facebook Reels Caption)**
 • Short, punchy, MAX 2 sentences. Do NOT include hashtags here.
@@ -286,6 +287,7 @@ Generate SEO metadata tailored for YouTube AND Facebook. Each platform has diffe
 • Write only in English.
 • Match the emotional tone of the video (epic goal → excited, controversy → dramatic, skill → amazed).
 • If you can identify the specific players/teams from the title, USE their exact names.
+• Do NOT output any source URLs.
 
 Return ONLY a valid JSON object with these exact keys:
 {{

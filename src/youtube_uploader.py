@@ -27,16 +27,18 @@ def get_youtube_client():
         
     return build('youtube', 'v3', credentials=creds)
 
-def upload_to_youtube(video_path, title, description):
+def upload_to_youtube(video_path, title, description, tags=None):
     print("Initializing YouTube upload...")
     youtube = get_youtube_client()
+    
+    tags = tags or ['football', 'viral', 'shorts', 'fifa']
     
     body = {
         'snippet': {
             'title': title,
             'description': description,
-            'tags': ['hollywood', 'viral', 'entertainment', 'shorts'],
-            'categoryId': '24' # Entertainment
+            'tags': tags,
+            'categoryId': '17' # Sports Category
         },
         'status': {
             'privacyStatus': 'public',
