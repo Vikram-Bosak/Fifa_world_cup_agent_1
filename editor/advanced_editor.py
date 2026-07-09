@@ -22,7 +22,7 @@ def get_video_dimensions(file_path):
         print(f"Error getting video dimensions: {e}")
         return 1920, 1080 # fallback to horizontal
 
-def edit_3_4_custom_layout_template(input_path: str, logo_path: str, output_path: str, headline: str = "VIRAL NEWS!", story: str = "", source_credit: str = ""):
+def edit_3_4_custom_layout_template(input_path: str, logo_path: str, output_path: str, headline: str = "VIRAL NEWS!", story: str = "", source_credit: str = "", safety_actions: list = None):
     print("Applying Custom Native Facebook Layout Template...")
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
     
@@ -30,10 +30,15 @@ def edit_3_4_custom_layout_template(input_path: str, logo_path: str, output_path
     frame_path = "temp/ui_frame.png"
     generate_ui_frame(frame_path, source_credit, headline, story)
     
+    safety_actions = safety_actions or []
+    
+    # Check if horizontal flip is needed to avoid visual copyright checks
+    flip_filter = "hflip," if "flip_horizontal" in safety_actions else ""
+    
     # 1080x1440 Canvas. Video takes 1070x1000 at x=5, y=95.
     # We apply the original zoom, speed, and color grading effects.
     filter_complex = (
-        "[0:v]setpts=PTS/1.05,scale=1070:1000:force_original_aspect_ratio=increase,crop=1070:1000,eq=contrast=1.05:brightness=0.02:saturation=1.15:gamma=1.0,unsharp=5:5:0.5[vid_processed];"
+        f"[0:v]{flip_filter}setpts=PTS/1.05,scale=1070:1000:force_original_aspect_ratio=increase,crop=1070:1000,eq=contrast=1.05:brightness=0.02:saturation=1.15:gamma=1.0,unsharp=5:5:0.5[vid_processed];"
         "[vid_processed]pad=1080:1440:5:95:color=black[bg];"
         "[bg][1:v]overlay=0:0[outv]"
     )
@@ -46,8 +51,8 @@ def edit_3_4_custom_layout_template(input_path: str, logo_path: str, output_path
 
     cmd = ["ffmpeg", "-y", "-i", input_path, "-i", frame_path]
 
-    # Audio volume boost logic (no BGM)
-    if has_audio:
+    # Audio volume boost logic (no BGM) - respect mute_audio action
+    if has_audio and "mute_audio" not in safety_actions:
         filter_complex += ";[0:a]volume=1.5,loudnorm=I=-16:TP=-1.5:LRA=11[outa]"
         cmd.extend(["-filter_complex", filter_complex, "-map", "[outv]", "-map", "[outa]"])
     else:
@@ -90,7 +95,19 @@ def process_video_dynamically(input_path: str, logo_path: str, output_path: str,
         full_context.update(analysis)
         json.dump(full_context, f, indent=4)
         
-    template_used = edit_3_4_custom_layout_template(input_path, logo_path, output_path, headline, story, source_credit)
+    safety_actions = analysis.get("safety_actions", [])
+    print(f"Applying safety actions: {safety_actions}")
+    
+    # We pass safety actions to modify parameters
+    template_used = edit_3_4_custom_layout_template(
+        input_path, 
+        logo_path, 
+        output_path, 
+        headline, 
+        story, 
+        source_credit,
+        safety_actions=safety_actions
+    )
         
     print("Video editing completed!")
     
@@ -104,12 +121,13 @@ def process_video_dynamically(input_path: str, logo_path: str, output_path: str,
         f"**Edit Complete Time:** {edit_complete_time.strftime('%Y-%m-%d %H:%M UTC')}\n"
         f"**File Name:** {file_name}\n"
         f"**Applied Template:** {template_used}\n"
+        f"**Safety Actions Applied:** {', '.join(safety_actions) if safety_actions else 'None'}\n"
         f"**Editing Status:** SUCCESS"
     )
     
-    from src.common.telegram import send_message
-    print("Sending Editing Status Report to Telegram...")
-    send_message(message_text)
+    from src.common.discord import send_discord_message
+    print("Sending Editing Status Report to Discord...")
+    send_discord_message(message_text)
     
     print("Process finished. Returning local path for sequential processing.")
     

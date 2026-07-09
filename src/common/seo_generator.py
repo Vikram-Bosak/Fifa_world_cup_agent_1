@@ -119,7 +119,6 @@ def analyze_video_for_editing(context: dict) -> dict:
     Stage 1: Analyzes video context and generates Hook Line, Short Headline, Overlay Text, and Category.
     """
     client = _get_client()
-    
     original_title = context.get('title', '')
     fallback = {
         "category": "Highlight",
@@ -133,7 +132,9 @@ def analyze_video_for_editing(context: dict) -> dict:
             if original_title
             else "Did you just see that?! This is the kind of moment that makes football the greatest sport on Earth. Watch till the end! 😱"
         ),
-        "overlay_text": "⚽ MUST-SEE FOOTBALL MOMENT"
+        "overlay_text": "⚽ MUST-SEE FOOTBALL MOMENT",
+        "safety_flags": [],
+        "safety_actions": []
     }
     
     if not client:
@@ -156,7 +157,8 @@ def analyze_video_for_editing(context: dict) -> dict:
         f"Hooks: {', '.join(FOOTBALL_KEYWORDS['emotional_hooks'][:5])}."
     )
 
-    prompt = f"""You are a world-class FIFA World Cup and global football social media strategist who crafts viral short-form content (YouTube Shorts, TikTok, Facebook Reels).
+    prompt = f"""You are a world-class FIFA World Cup and global football social media strategist and content safety auditor.
+Analyze the video context and metadata carefully to ensure absolute compliance with Facebook's Community Standards and Copyright/Rights Manager policies.
 
 === SOURCE OF TRUTH ===
 Original Title/Text: {context.get('title', 'Unknown')}
@@ -165,33 +167,28 @@ Source Profile: {context.get('source', 'Unknown')}
 {trending_snippet}
 
 === YOUR TASK ===
-Analyze the "Original Title/Text" deeply. Identify:
-• The exact football players, clubs, national teams, or competition mentioned.
-• The emotional hook (e.g., rage, disbelief, joy, heartbreak).
-• The type of football moment (goal, save, tackle, celebration,VAR controversy, press conference drama, transfer news, etc.).
+Analyze the "Original Title/Text" and any visual context. Identify:
+1. Exact players, clubs, or tournaments.
+2. The emotional hook.
+3. The content safety risks:
+   - Does this show explicit physical violence, fights, or severe medical injuries?
+   - Is it a non-football meme containing sensitive geopolitical issues?
+   - Does it use commentator voice or official broadcaster footage (e.g. beIN Sports, Sky Sports) that might trigger Rights Manager?
 
 Then generate:
-
-1. **short_headline** – 3-6 words max, ALL CAPS, punchy, in ENGLISH. Include 1 relevant emoji. 
-   Examples: "RONALDO'S INSANE HEADER 🤯", "GOALKEEPER GOES BEAST MODE 🧤", "VAR DECIDES THE WORLD CUP 🏆"
-
-2. **story** – A 2-3 sentence paragraph that builds suspense and drives the viewer to watch. Use a conversational, excited tone. Include 2-3 emojis. Must feel like a football fan hyping their friend.
-   Example: "This free kick from 35 yards left the entire stadium speechless. The goalkeeper didn't even move. Is this the goal of the tournament? 👇⚽🔥"
-
-3. **category** – One of: "Highlight", "Skill Move", "Goal", "Save", "Drama", "News/Transfer", "Fun/Meme", "Documentary".
-
-=== RULES ===
-• Write ONLY in English.
-• Stay strictly within football/soccer context. NEVER reference movies, music, or non-football topics.
-• Use trending football keywords naturally in your output.
-• Make it feel like a fan, not a corporate account.
-• No clickbait promises that the video can't deliver.
+1. **short_headline** – 3-6 words max, ALL CAPS, punchy, in ENGLISH. Include 1 relevant emoji.
+2. **story** – A 2-3 sentence conversational paragraph hyping the video.
+3. **category** – "Highlight", "Skill Move", "Goal", "Save", "Drama", "News/Transfer", "Fun/Meme", "Documentary".
+4. **safety_flags** – List containing flags if present: "violence" (fights/blood/injuries), "sensitive_meme" (non-football topics), "copyright_audio" (heavy commentary), "broadcaster_watermark" (visible tv logos). Empty list if clean.
+5. **safety_actions** – Actions required to make the video safe: "mute_audio" (if audio risk), "flip_horizontal" (to avoid visual match), "trim_video" (if too long or ends in fight). Empty list if clean.
 
 Return ONLY a valid JSON object with these exact keys:
 {{
   "category": "...",
   "short_headline": "...",
-  "story": "..."
+  "story": "...",
+  "safety_flags": [],
+  "safety_actions": []
 }}"""
     
     try:

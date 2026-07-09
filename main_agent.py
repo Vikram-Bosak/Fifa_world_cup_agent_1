@@ -31,8 +31,22 @@ def run_single_sequence():
         return False
         
     task_id = video_data['id']
+    title = video_data.get('title', '')
+    source_url = video_data.get('source_url', '')
+    
+    # Pre-screening text metadata safety check
+    from src.common.safety_filter import check_metadata_safety
+    safety_check = check_metadata_safety(title, source_url)
+    if not safety_check["is_safe"]:
+        reasons = ", ".join(safety_check["reasons"])
+        print(f"Video {task_id} rejected by safety filter: {reasons}")
+        send_discord_message(f"⚠️ **Video {task_id} Rejected by Safety Filter:**\n{reasons}")
+        # Save to history to prevent picking this unsafe video again
+        save_to_history(task_id)
+        return False
+        
     print(f"Downloaded Video: {task_id}")
-    report_download_complete(video_data['source_url'])
+    report_download_complete(source_url)
     send_discord_message(f"🆔 **Unique ID generated:** {task_id}")
     increment_download()
     
