@@ -44,6 +44,22 @@ def main():
     description = report.get('description', 'N/A')
     fb_url = report.get('facebook_url', 'N/A')
     
+    # Search for safety flags/actions in state json files
+    safety_info = "Clean (No risks flagged)"
+    try:
+        temp_files = os.listdir("temp")
+        state_files = [f for f in temp_files if f.startswith("state_upload_") and f.endswith(".json")]
+        if state_files:
+            state_path = os.path.join("temp", state_files[0])
+            with open(state_path, 'r') as sf:
+                state_data = json.load(sf)
+                flags = state_data.get("safety_flags", [])
+                actions = state_data.get("safety_actions", [])
+                if flags:
+                    safety_info = f"⚠️ Flags: {', '.join(flags)} | Applied Mod: {', '.join(actions) if actions else 'None'}"
+    except Exception as e:
+        print(f"Could not load safety state info: {e}")
+
     # Determine YouTube Status
     yt_url = report.get('youtube_url', 'N/A')
     yt_status = "Success" if "youtube.com" in yt_url or "youtu.be" in yt_url else "Failed / N/A"
@@ -62,6 +78,7 @@ def main():
         "color": color,
         "fields": [
             {"name": "🎬 Video Name", "value": video_name, "inline": False},
+            {"name": "🛡️ Copyright & Safety Check", "value": safety_info, "inline": False},
             {"name": "📥 Download Status", "value": download_status, "inline": True},
             {"name": "✂️ Editing Status", "value": editing_status, "inline": True},
             {"name": "📤 Facebook Upload", "value": upload_status, "inline": True},
@@ -85,6 +102,14 @@ def main():
     if os.path.exists("workspace"):
         shutil.rmtree("workspace")
         print("Cleaned up workspace directory.")
+        
+    # Also clean up temp state uploads
+    try:
+        for f in os.listdir("temp"):
+            if f.startswith("state_upload_") and f.endswith(".json"):
+                os.remove(os.path.join("temp", f))
+    except Exception:
+        pass
 
 if __name__ == "__main__":
     main()
