@@ -31,9 +31,8 @@ def search_and_download_latest_video():
         "errors": []
     }
     
-    # Hardcoded 10 profiles as requested by the user
+    # Updated profiles (16 total active profiles)
     profiles = [
-        "https://x.com/WorldCupMedia_",
         "https://x.com/Waleedahmdd",
         "https://x.com/FIFAWC26Updates",
         "https://x.com/FIFAcom",
@@ -42,7 +41,14 @@ def search_and_download_latest_video():
         "https://x.com/footballontnt",
         "https://x.com/TrollFootball",
         "https://x.com/Footballtweet",
-        "https://x.com/FBAwayDays"
+        "https://x.com/FBAwayDays",
+        "https://x.com/nocontextfooty",
+        "https://x.com/centregoals",
+        "https://x.com/PurelyFootball",
+        "https://x.com/TotalCristiano",
+        "https://x.com/StopThatMessi",
+        "https://x.com/FootyHumour",
+        "https://x.com/TimelineCR7"
     ]
         
     # Clean profiles to just usernames if they are full URLs
@@ -63,7 +69,8 @@ def search_and_download_latest_video():
         'quiet': False
     }
     
-    time_limit = datetime.now(timezone.utc) - timedelta(hours=3)
+    # 4 hours lookback to match 2-hour schedule
+    time_limit = datetime.now(timezone.utc) - timedelta(hours=4)
     print(f"Time limit is set to: {time_limit.isoformat()}")
     
     nitter_instances = [
@@ -84,7 +91,11 @@ def search_and_download_latest_video():
         for instance in nitter_instances:
             url = f"{instance}/{username}/rss"
             try:
-                req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'})
+                # Add full realistic Chrome User-Agent to prevent Cloudflare/Caddy block on Nitter
+                headers = {
+                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+                }
+                req = urllib.request.Request(url, headers=headers)
                 with urllib.request.urlopen(req, timeout=15) as response:
                     xml_data = response.read()
                     root = ET.fromstring(xml_data)

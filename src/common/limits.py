@@ -4,9 +4,9 @@ from datetime import datetime
 
 LIMITS_FILE = os.path.join(os.path.dirname(os.path.dirname(__file__)), "temp", "daily_limits.json")
 
-MAX_DOWNLOADS = 5
-MAX_EDITS = 5
-MAX_UPLOADS = 5
+MAX_DOWNLOADS = 15
+MAX_EDITS = 15
+MAX_UPLOADS = 15
 
 def _load_limits():
     today = datetime.utcnow().date().isoformat()
