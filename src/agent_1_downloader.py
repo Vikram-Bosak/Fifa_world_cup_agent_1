@@ -173,6 +173,46 @@ def search_and_download_latest_video():
         
         print(f"Selected valid NEW video: {original_tweet_url}")
         
+        # Aspect Ratio Check (9:16 Filter) before downloading
+        try:
+            print(f"Checking aspect ratio for {original_tweet_url}...")
+            ydl_opts_meta = {
+                'quiet': True,
+                'no_warnings': True,
+            }
+            with yt_dlp.YoutubeDL(ydl_opts_meta) as ydl:
+                info = ydl.extract_info(original_tweet_url, download=False)
+            
+            width = info.get('width')
+            height = info.get('height')
+            
+            if not width or not height:
+                formats = info.get('formats', [])
+                for f in formats:
+                    if f.get('width') and f.get('height'):
+                        width = f.get('width')
+                        height = f.get('height')
+                        break
+            
+            if width and height:
+                aspect_ratio = width / height
+                print(f"Metadata - Resolution: {width}x{height}, Aspect Ratio: {aspect_ratio:.4f}")
+                # 9:16 is exactly 0.5625. Allow 0.5 to 0.65.
+                # This correctly skips square (1.0), 4:5 (0.8), and horizontal (1.777) videos.
+                if not (0.5 <= aspect_ratio <= 0.65):
+                    print(f"Skipping {original_tweet_url} - Aspect ratio is not 9:16.")
+                    stats["videos_skipped"] += 1
+                    continue
+                print("Video aspect ratio matches 9:16 (Vertical). Proceeding to download.")
+            else:
+                print("Could not determine aspect ratio. Skipping video to be safe.")
+                stats["videos_skipped"] += 1
+                continue
+        except Exception as e:
+            print(f"Error checking aspect ratio: {e}")
+            stats["errors"].append(f"Aspect Ratio check error: {str(e)}")
+            continue
+            
         # Use yt-dlp to download it
         try:
             os.makedirs('workspace', exist_ok=True)
