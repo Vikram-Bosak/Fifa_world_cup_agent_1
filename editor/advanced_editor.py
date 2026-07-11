@@ -28,7 +28,7 @@ def edit_3_4_custom_layout_template(input_path: str, logo_path: str, output_path
     
     from src.common.ui_frame_generator import generate_ui_frame
     frame_path = "temp/ui_frame.png"
-    generate_ui_frame(frame_path, source_credit, headline, story)
+    generate_ui_frame(frame_path, source_credit, headline, story, width=1080, height=1920)
     
     safety_actions = safety_actions or []
     
@@ -69,7 +69,7 @@ def edit_3_4_custom_layout_template(input_path: str, logo_path: str, output_path
         output_path
     ])
     subprocess.run(cmd, check=True, timeout=120)
-    return "3:4 Custom Layout Template"
+    return "9:16 Custom Layout Template"
 
 def process_video_dynamically(input_path: str, logo_path: str, output_path: str, task: dict = None):
     from src.common.seo_generator import analyze_video_for_editing

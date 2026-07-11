@@ -4,7 +4,7 @@ import textwrap
 from PIL import Image, ImageDraw, ImageFont
 from pilmoji import Pilmoji
 
-def generate_ui_frame(output_path: str, source_name: str, headline: str, story: str, width=1080, height=1440):
+def generate_ui_frame(output_path: str, source_name: str, headline: str, story: str, width=1080, height=1920):
     img = Image.new('RGBA', (width, height), (0, 0, 0, 0))
     draw = ImageDraw.Draw(img)
     
