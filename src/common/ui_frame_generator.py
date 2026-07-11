@@ -83,49 +83,7 @@ def generate_ui_frame(output_path: str, source_name: str, headline: str, story: 
             renderer.text((30, start_y), hashtag_text, fill=(160, 176, 192, 255), font=f_story)
             start_y += 45
             
-        # --- Separator Line ---
-        sep_y = height - 100
-        draw.line([(25, sep_y), (width - 25, sep_y)], fill=line_color, width=2)
-        
-        # --- 'Tap or hold...' Hint Text ---
-        try:
-            f_hint = ImageFont.truetype(font_reg, 22)
-        except IOError:
-            f_hint = ImageFont.load_default()
-            
-        hint_text = "Tap or hold to like and react with Love, Haha, Wow, or Sad!"
-        if is_pilmoji:
-            hint_w = renderer.getsize(hint_text, font=f_hint)[0]
-        else:
-            try:
-                hint_w = int(draw.textlength(hint_text, font=f_hint))
-            except AttributeError:
-                bbox = draw.textbbox((0, 0), hint_text, font=f_hint)
-                hint_w = bbox[2] - bbox[0]
-                
-        # Align to the right side, just above the separator line
-        renderer.text((width - hint_w - 30, sep_y - 35), hint_text, fill=(200, 200, 200, 255), font=f_hint)
-        
-        # --- ENGAGEMENT BAR ---
-        engage_y = height - 80
-        
-        # Overlapping emojis
-        draw.ellipse([30, engage_y, 30+40, engage_y+40], fill=(24,119,242,255))
-        draw.ellipse([55, engage_y, 55+40, engage_y+40], fill=(240,40,73,255))
-        draw.ellipse([80, engage_y, 80+40, engage_y+40], fill=(247,177,37,255))
-        draw.ellipse([105, engage_y, 105+40, engage_y+40], fill=(247,177,37,255))
-        
-        renderer.text((35, engage_y+2), "👍", fill=white, font=f_stats)
-        renderer.text((60, engage_y+2), "❤️", fill=white, font=f_stats)
-        renderer.text((85, engage_y+2), "😂", fill=white, font=f_stats)
-        renderer.text((110, engage_y+2), "😲", fill=white, font=f_stats)
-        
-        likes_num = random.randint(10000, 99999)
-        formatted_likes = f"{likes_num:,} Likes"
-        renderer.text((160, engage_y+2), formatted_likes, fill=white, font=f_stats)
-        
-        renderer.text((550, engage_y+2), "💬 Comment", fill=white, font=f_stats)
-        renderer.text((820, engage_y+2), "↗️ Share", fill=white, font=f_stats)
+        # (Removed separator, hint text, and engagement bar)
         
         # --- VIDEO CREDIT OVERLAY ---
         # Draw on the transparent area so it overlays on the video
