@@ -42,7 +42,7 @@ def generate_ui_frame(output_path: str, source_name: str, headline: str, story: 
     except IOError:
         f_head = f_story = f_stats = ImageFont.load_default()
         
-    with Pilmoji(img) as pilmoji:
+    def draw_all(renderer, is_pilmoji):
         start_y = height - bottom_bar_height + 25
         
         # --- Main Headline ---
@@ -52,7 +52,7 @@ def generate_ui_frame(output_path: str, source_name: str, headline: str, story: 
             f_sub = ImageFont.load_default()
             
         headline_text = headline.strip() if headline else ""
-        pilmoji.text((30, start_y), headline_text, fill=white, font=f_sub)
+        renderer.text((30, start_y), headline_text, fill=white, font=f_sub)
         
         start_y += 60
         
@@ -74,13 +74,13 @@ def generate_ui_frame(output_path: str, source_name: str, headline: str, story: 
             f_story_bold = ImageFont.load_default()
             
         for line in story_lines[:3]: # Max 3 lines for description
-            pilmoji.text((30, start_y), line, fill=white, font=f_story)
+            renderer.text((30, start_y), line, fill=white, font=f_story)
             start_y += 42
             
         # Draw hashtags on a new line with lighter color
         if hashtags:
             hashtag_text = " ".join(hashtags)
-            pilmoji.text((30, start_y), hashtag_text, fill=(160, 176, 192, 255), font=f_story)
+            renderer.text((30, start_y), hashtag_text, fill=(160, 176, 192, 255), font=f_story)
             start_y += 45
             
         # --- Separator Line ---
@@ -94,9 +94,17 @@ def generate_ui_frame(output_path: str, source_name: str, headline: str, story: 
             f_hint = ImageFont.load_default()
             
         hint_text = "Tap or hold to like and react with Love, Haha, Wow, or Sad!"
-        hint_w = pilmoji.getsize(hint_text, font=f_hint)[0]
+        if is_pilmoji:
+            hint_w = renderer.getsize(hint_text, font=f_hint)[0]
+        else:
+            try:
+                hint_w = int(draw.textlength(hint_text, font=f_hint))
+            except AttributeError:
+                bbox = draw.textbbox((0, 0), hint_text, font=f_hint)
+                hint_w = bbox[2] - bbox[0]
+                
         # Align to the right side, just above the separator line
-        pilmoji.text((width - hint_w - 30, sep_y - 35), hint_text, fill=(200, 200, 200, 255), font=f_hint)
+        renderer.text((width - hint_w - 30, sep_y - 35), hint_text, fill=(200, 200, 200, 255), font=f_hint)
         
         # --- ENGAGEMENT BAR ---
         engage_y = height - 80
@@ -107,17 +115,17 @@ def generate_ui_frame(output_path: str, source_name: str, headline: str, story: 
         draw.ellipse([80, engage_y, 80+40, engage_y+40], fill=(247,177,37,255))
         draw.ellipse([105, engage_y, 105+40, engage_y+40], fill=(247,177,37,255))
         
-        pilmoji.text((35, engage_y+2), "👍", fill=white, font=f_stats)
-        pilmoji.text((60, engage_y+2), "❤️", fill=white, font=f_stats)
-        pilmoji.text((85, engage_y+2), "😂", fill=white, font=f_stats)
-        pilmoji.text((110, engage_y+2), "😲", fill=white, font=f_stats)
+        renderer.text((35, engage_y+2), "👍", fill=white, font=f_stats)
+        renderer.text((60, engage_y+2), "❤️", fill=white, font=f_stats)
+        renderer.text((85, engage_y+2), "😂", fill=white, font=f_stats)
+        renderer.text((110, engage_y+2), "😲", fill=white, font=f_stats)
         
         likes_num = random.randint(10000, 99999)
         formatted_likes = f"{likes_num:,} Likes"
-        pilmoji.text((160, engage_y+2), formatted_likes, fill=white, font=f_stats)
+        renderer.text((160, engage_y+2), formatted_likes, fill=white, font=f_stats)
         
-        pilmoji.text((550, engage_y+2), "💬 Comment", fill=white, font=f_stats)
-        pilmoji.text((820, engage_y+2), "↗️ Share", fill=white, font=f_stats)
+        renderer.text((550, engage_y+2), "💬 Comment", fill=white, font=f_stats)
+        renderer.text((820, engage_y+2), "↗️ Share", fill=white, font=f_stats)
         
         # --- VIDEO CREDIT OVERLAY ---
         # Draw on the transparent area so it overlays on the video
@@ -127,7 +135,15 @@ def generate_ui_frame(output_path: str, source_name: str, headline: str, story: 
         except IOError:
             f_credit = ImageFont.load_default()
             
-        credit_w = pilmoji.getsize(credit_text, font=f_credit)[0]
+        if is_pilmoji:
+            credit_w = renderer.getsize(credit_text, font=f_credit)[0]
+        else:
+            try:
+                credit_w = int(draw.textlength(credit_text, font=f_credit))
+            except AttributeError:
+                bbox = draw.textbbox((0, 0), credit_text, font=f_credit)
+                credit_w = bbox[2] - bbox[0]
+                
         # Position at bottom right of the video area
         credit_x = width - credit_w - 30
         credit_y = height - bottom_bar_height - 50
@@ -135,8 +151,15 @@ def generate_ui_frame(output_path: str, source_name: str, headline: str, story: 
         # Draw stroke/shadow for visibility
         shadow_color = (0, 0, 0, 200)
         for offset in [(2,2), (-2,-2), (2,-2), (-2,2), (0,2), (2,0), (-2,0), (0,-2)]:
-            pilmoji.text((credit_x + offset[0], credit_y + offset[1]), credit_text, fill=shadow_color, font=f_credit)
-        pilmoji.text((credit_x, credit_y), credit_text, fill=(230, 230, 230, 255), font=f_credit)
+            renderer.text((credit_x + offset[0], credit_y + offset[1]), credit_text, fill=shadow_color, font=f_credit)
+        renderer.text((credit_x, credit_y), credit_text, fill=(230, 230, 230, 255), font=f_credit)
+
+    try:
+        with Pilmoji(img) as pilmoji:
+            draw_all(pilmoji, is_pilmoji=True)
+    except Exception as e:
+        print(f"Pilmoji failed (network or other error): {e}. Falling back to standard ImageDraw.")
+        draw_all(draw, is_pilmoji=False)
         
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
     img.save(output_path, "PNG")
