@@ -6,7 +6,6 @@ import textwrap
 from dotenv import load_dotenv
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from src.common.discord import send_video
 
 def get_video_dimensions(file_path):
     cmd = [
