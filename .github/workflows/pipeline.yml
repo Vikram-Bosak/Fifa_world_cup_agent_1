@@ -72,6 +72,7 @@ jobs:
           git config --global user.email 'github-actions[bot]@users.noreply.github.com'
           git add downloaded_history.txt || true
           git add temp/daily_limits.json || true
-          git commit -m "Update download history and limits" || true
+          git add tiktok_error.png || true
+          git commit -m "Update download history and limits (including debug screenshot)" || true
           git pull origin main --rebase --strategy-option=ours || true
           git push origin HEAD:main || true

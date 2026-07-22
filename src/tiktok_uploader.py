@@ -170,6 +170,11 @@ class TikTokUploadAgent:
                             logging.info(f"TikTok Uploader: Extracted uploaded video URL: {video_url}")
                     except Exception as extract_err:
                         logging.warning(f"TikTok Uploader: Could not extract video URL, using profile fallback: {extract_err}")
+                        try:
+                            page.screenshot(path="tiktok_error.png")
+                            logging.info("TikTok Uploader: Saved debug screenshot to tiktok_error.png")
+                        except Exception as ss_err:
+                            logging.error(f"TikTok Uploader: Failed to save screenshot: {ss_err}")
                 
                 browser.close()
 
