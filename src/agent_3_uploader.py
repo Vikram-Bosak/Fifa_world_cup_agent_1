@@ -80,6 +80,7 @@ def run_upload(video_data):
 
     fb_success = False
     yt_success = False
+    tt_success = False
 
     # Facebook Upload
     try:
@@ -109,23 +110,47 @@ def run_upload(video_data):
     except Exception as e:
         logging.error(f"Failed to upload to YouTube: {e}")
         video_data["yt_err"] = str(e)
+
+    # TikTok Upload
+    try:
+        logging.info("Waiting 2 seconds before uploading to TikTok...")
+        time.sleep(2)
+        
+        # TikTok Caption can use the same fb_caption (usually short and has hashtags)
+        tt_caption = fb_caption
+        if len(tt_caption) > 150:
+            tt_caption = tt_caption[:147] + "..."
+            
+        logging.info("Starting TikTok upload...")
+        from src.tiktok_uploader import upload_tiktok
+        tt_url = upload_tiktok(edited_video_path, tt_caption)
+        logging.info(f"Successfully uploaded to TikTok: {tt_url}")
+        video_data["tiktok_url"] = tt_url
+        tt_success = True
+    except Exception as e:
+        logging.error(f"Failed to upload to TikTok: {e}")
+        video_data["tiktok_err"] = str(e)
         
     # Set overall status based on whether at least one upload succeeded
-    if fb_success or yt_success:
+    if fb_success or yt_success or tt_success:
         video_data["upload_status"] = "Success"
         status_parts = []
         if fb_success:
             status_parts.append("Facebook")
         if yt_success:
             status_parts.append("YouTube")
+        if tt_success:
+            status_parts.append("TikTok")
         logging.info(f"Upload completed successfully to: {', '.join(status_parts)}")
     else:
         video_data["upload_status"] = "Failed"
-        logging.error("Both Facebook and YouTube uploads failed.")
+        logging.error("Facebook, YouTube and TikTok uploads failed.")
         if video_data.get("fb_err"):
             logging.error(f"  Facebook error: {video_data['fb_err']}")
         if video_data.get("yt_err"):
             logging.error(f"  YouTube error: {video_data['yt_err']}")
+        if video_data.get("tiktok_err"):
+            logging.error(f"  TikTok error: {video_data['tiktok_err']}")
         
     # Cleanup — always runs regardless of upload outcome
     try:
