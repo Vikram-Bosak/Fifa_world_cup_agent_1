@@ -50,6 +50,7 @@ jobs:
           FB_PAGE_ID: ${{ secrets.FB_PAGE_ID }}
           YOUTUBE_TOKEN_JSON: ${{ secrets.YOUTUBE_TOKEN_JSON }}
           TIKTOK_AUTH_STATE: ${{ secrets.TIKTOK_AUTH_STATE }}
+          TIKTOK_AUTH_STATE_B64: ${{ secrets.TIKTOK_AUTH_STATE_B64 }}
           X_PROFILES: ${{ secrets.X_PROFILES }}
           TWITTER_PROFILES: ${{ secrets.X_PROFILES }}
           X_BACKUP_PROFILES: ${{ secrets.X_BACKUP_PROFILES }}
