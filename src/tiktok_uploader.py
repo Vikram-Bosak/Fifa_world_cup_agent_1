@@ -159,6 +159,16 @@ class TikTokUploadAgent:
                         page.goto(posts_url)
                     time.sleep(8)
                     try:
+                        links = page.locator("a").all()
+                        logging.info(f"TikTok Uploader: Total 'a' links found on page: {len(links)}")
+                        for idx, link in enumerate(links[:50]):
+                            href = link.get_attribute("href")
+                            text = link.inner_text()
+                            logging.info(f"Link {idx}: text='{text}', href='{href}'")
+                    except Exception as list_err:
+                        logging.warning(f"TikTok Uploader: Error listing page links: {list_err}")
+
+                    try:
                         video_link_selector = 'a[href*="/video/"]'
                         page.wait_for_selector(video_link_selector, timeout=15000)
                         extracted_url = page.locator(video_link_selector).first.get_attribute("href")
