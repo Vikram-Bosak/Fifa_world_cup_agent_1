@@ -55,8 +55,11 @@ def run_single_sequence():
         print("No video found from RSS. Forcing a test run using mock video...")
         try:
             os.makedirs("workspace", exist_ok=True)
-            import urllib.request
-            urllib.request.urlretrieve("https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4", "workspace/raw_video.mp4")
+            import requests
+            r = requests.get("https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4", headers={"User-Agent": "Mozilla/5.0"}, timeout=30)
+            r.raise_for_status()
+            with open("workspace/raw_video.mp4", "wb") as f:
+                f.write(r.content)
             video_data = {
                 "id": f"test_{int(time.time())}",
                 "local_path": "workspace/raw_video.mp4",
