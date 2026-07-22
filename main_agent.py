@@ -56,7 +56,7 @@ def run_single_sequence():
         try:
             os.makedirs("workspace", exist_ok=True)
             import requests
-            r = requests.get("https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4", headers={"User-Agent": "Mozilla/5.0"}, timeout=30)
+            r = requests.get("https://www.w3schools.com/html/mov_bbb.mp4", headers={"User-Agent": "Mozilla/5.0"}, timeout=30)
             r.raise_for_status()
             with open("workspace/raw_video.mp4", "wb") as f:
                 f.write(r.content)
