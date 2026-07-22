@@ -144,7 +144,7 @@ class TikTokUploadAgent:
                     logging.warning(f"TikTok Uploader: Error clicking 'Post now': {e}")
 
                 logging.info("TikTok Uploader: Waiting for upload to complete and redirect to content manager...")
-                video_url = "https://www.tiktok.com" # Default fallback
+                video_url = "https://www.tiktok.com/@thefifainsiderusa" # Default fallback
                 try:
                     page.wait_for_url(lambda url: "creator-center" in url or "tiktokstudio" in url, timeout=55000)
                     logging.info(f"TikTok Uploader: Successfully redirected to content manager ({page.url}).")
