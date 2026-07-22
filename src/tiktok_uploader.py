@@ -153,7 +153,11 @@ class TikTokUploadAgent:
                 
                 # Attempt to extract video URL if we are on creator center or tiktok studio page
                 if "creator-center" in page.url or "tiktokstudio" in page.url:
-                    time.sleep(5)
+                    if "upload" in page.url:
+                        posts_url = page.url.replace("/upload", "/posts") if "tiktokstudio" in page.url else page.url.replace("/upload", "/content")
+                        logging.info(f"TikTok Uploader: Navigating to posts page: {posts_url}")
+                        page.goto(posts_url)
+                    time.sleep(8)
                     try:
                         video_link_selector = 'a[href*="/video/"]'
                         page.wait_for_selector(video_link_selector, timeout=15000)
