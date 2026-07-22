@@ -39,7 +39,8 @@ def run_single_sequence():
         "seo_title": "N/A",
         "description": "N/A",
         "facebook_url": "N/A",
-        "youtube_url": "N/A"
+        "youtube_url": "N/A",
+        "tiktok_url": "N/A"
     }
     
     if not can_download() or not can_upload():
@@ -151,6 +152,7 @@ def run_single_sequence():
     report_data["upload_status"] = video_data.get('upload_status', 'Failed')
     report_data["facebook_url"] = video_data.get('fb_url', 'N/A')
     report_data["youtube_url"] = video_data.get('yt_url', 'N/A')
+    report_data["tiktok_url"] = video_data.get('tiktok_url', 'N/A')
     report_data["seo_title"] = video_data.get('title', 'N/A')
     report_data["description"] = video_data.get('description', 'N/A')
     write_report(report_data)
