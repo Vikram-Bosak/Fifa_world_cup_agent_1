@@ -56,7 +56,7 @@ def run_single_sequence():
         try:
             os.makedirs("workspace", exist_ok=True)
             import urllib.request
-            urllib.request.urlretrieve("https://github.com/Vikram-Bosak/kidobum/raw/main/015_KIDO_Counts_FIVE.mp4", "workspace/raw_video.mp4")
+            urllib.request.urlretrieve("https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4", "workspace/raw_video.mp4")
             video_data = {
                 "id": f"test_{int(time.time())}",
                 "local_path": "workspace/raw_video.mp4",
